@@ -148,9 +148,9 @@ def generate_timetable():
     
     a = get_analyzer()
     
-    # Generate many timetables to find diverse slot patterns
-    # Increase to 1000 to capture more lab/section combinations
-    timetables = a.generate_timetables(constraints, max_results=1000)
+    # Generate timetables to find diverse slot patterns
+    # Limited to 200 for faster response on free-tier servers
+    timetables = a.generate_timetables(constraints, max_results=200)
     
     if not timetables:
         return jsonify({
