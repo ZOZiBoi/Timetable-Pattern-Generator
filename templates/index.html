@@ -1,0 +1,2316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAST Timetable Generator</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --bg-hover: #22222e;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --accent-light: #818cf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #2d2d3a;
+            --border-light: #3d3d4a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1100px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .section {
+            margin-bottom: 1.5rem;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 3px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        /* Form Elements */
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        select,
+        input[type="number"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        input[type="number"] {
+            width: 80px;
+        }
+
+        /* Checkbox Group */
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.75rem;
+            background: var(--bg-card);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            border: 1px solid transparent;
+        }
+
+        .checkbox-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .checkbox-item.selected {
+            background: var(--accent);
+            color: white;
+        }
+
+        .checkbox-item input {
+            display: none;
+        }
+
+        /* Pill Tags */
+        .tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.7rem;
+            background: var(--accent);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .tag .remove {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .tag .remove:hover {
+            opacity: 1;
+        }
+
+        /* Wildcards */
+        .wildcard-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .wildcard-label {
+            font-size: 0.9rem;
+        }
+
+        .wildcard-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .wildcard-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .wildcard-btn:hover {
+            background: var(--accent);
+        }
+
+        .wildcard-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        /* Time Slots */
+        .time-slot-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+
+        .time-slot {
+            padding: 0.5rem;
+            text-align: center;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .time-slot:hover {
+            background: var(--bg-hover);
+        }
+
+        .time-slot.excluded {
+            background: var(--error);
+            color: white;
+            border-color: var(--error);
+            text-decoration: line-through;
+        }
+
+        /* Excluded instructors display */
+        .excluded-items-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .excluded-items-display:empty {
+            display: none;
+        }
+
+        .excluded-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.6rem;
+            background: var(--error);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            text-decoration: line-through;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .excluded-item:hover {
+            background: #dc2626;
+            text-decoration: none;
+        }
+
+        .excluded-item .remove-x {
+            text-decoration: none;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+
+        .excluded-item:hover .remove-x {
+            opacity: 1;
+        }
+
+        /* Breaks selector */
+        .breaks-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .break-option {
+            padding: 0.5rem 0.75rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .break-option:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+
+        .break-option.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Selected courses with section selector */
+        .selected-courses-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .selected-courses-container:empty {
+            display: none;
+        }
+
+        .selected-course-item {
+            display: flex;
+            flex-direction: column;
+            padding: 0.6rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .selected-course-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.4rem;
+        }
+
+        .selected-course-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .selected-course-remove {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0 0.3rem;
+            transition: color 0.2s;
+        }
+
+        .selected-course-remove:hover {
+            color: var(--error);
+        }
+
+        .section-picker {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-picker label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .section-picker select {
+            flex: 1;
+            padding: 0.4rem 0.6rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .section-picker select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Multi-select section picker */
+        .section-multi-picker {
+            margin-top: 0.5rem;
+        }
+
+        .section-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.4rem;
+        }
+
+        .section-count {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .section-count.warning {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .selected-course-item.no-sections-selected {
+            border-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .selected-course-item.no-sections-selected .selected-course-name {
+            color: #e74c3c;
+        }
+
+        .select-all-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--accent-light);
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .select-all-btn:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .select-all-btn.deselect {
+            color: var(--text-muted);
+        }
+
+        .select-all-btn.deselect:hover {
+            background: var(--error);
+            border-color: var(--error);
+            color: white;
+        }
+
+        .section-btn-group {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        .section-checkboxes {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            max-height: 150px;
+            overflow-y: auto;
+            padding-right: 0.3rem;
+        }
+
+        .section-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+        }
+
+        .section-checkbox:hover {
+            border-color: var(--accent);
+            background: var(--bg-hover);
+        }
+
+        .section-checkbox.checked {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .section-check {
+            width: 18px;
+            height: 18px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .section-checkbox.checked .section-check {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .section-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            overflow: hidden;
+        }
+
+        .section-id {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .section-details {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Generate Button */
+        .generate-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px var(--accent-glow);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Results Area */
+        .results {
+            min-height: 400px;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .results-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .results-count {
+            background: var(--bg-card);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Pattern Tabs */
+        .pattern-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .course-chip.robo-elective {
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+        }
+
+        .course-detail-card.robo-course {
+            border-left-color: #8b5cf6;
+        }
+
+        .pattern-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            min-width: 120px;
+        }
+
+        .pattern-tab:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+
+        .pattern-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .pattern-tab .pattern-num {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .pattern-tab.active .pattern-num {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .pattern-tab .pattern-info {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        .pattern-tab.active .pattern-info {
+            color: white;
+        }
+
+        .pattern-tab .variation-count {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .pattern-tab.active .variation-count {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Timetable Card */
+        .timetable-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .timetable-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .timetable-number {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .timetable-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .stat-value {
+            color: var(--accent-light);
+            font-weight: 600;
+        }
+
+        /* Schedule Grid */
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(5, 1fr);
+            overflow-x: auto;
+        }
+
+        .grid-header {
+            background: var(--bg-secondary);
+            padding: 0.75rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+        }
+
+        .grid-time {
+            background: var(--bg-secondary);
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+        }
+
+        .grid-cell {
+            padding: 0.5rem;
+            min-height: 70px;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            position: relative;
+        }
+
+        .grid-cell.has-options {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .grid-cell.has-options:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Slot with course options */
+        .slot-selector {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .slot-selector:hover {
+            border-color: var(--accent);
+        }
+
+        .slot-selector:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        .slot-selector option {
+            padding: 0.5rem;
+        }
+
+        /* Course chip in grid */
+        .course-chip {
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: white;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .course-chip.university-elective {
+            background: linear-gradient(135deg, var(--success), #34d399);
+        }
+
+        .course-chip.lab {
+            background: linear-gradient(135deg, var(--warning), #fbbf24);
+            color: black;
+        }
+
+        .course-chip.required {
+            border: 2px solid white;
+        }
+
+        /* Slot options count badge */
+        .options-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--accent);
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* Course Details */
+        .course-details {
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .course-detail-card {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 1rem;
+            border-left: 3px solid var(--accent);
+        }
+
+        .course-detail-card.university-elective {
+            border-left-color: var(--success);
+        }
+
+        .course-detail-card.lab-course {
+            border-left-color: var(--warning);
+        }
+
+        .course-name {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .course-badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .course-badge.lab {
+            background: var(--warning);
+            color: black;
+        }
+
+        .course-badge.required {
+            background: var(--accent);
+            color: white;
+        }
+
+        .course-info {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .course-category {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            background: var(--bg-card);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Section Selector in card */
+        .section-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.75rem 0;
+            padding: 0.5rem;
+            background: var(--bg-primary);
+            border-radius: 6px;
+        }
+
+        .section-selector label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .section-select {
+            flex: 1;
+            padding: 0.4rem 0.6rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .section-select:hover {
+            border-color: var(--accent);
+        }
+
+        .section-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .alt-count {
+            font-size: 0.7rem;
+            color: var(--accent-light);
+            white-space: nowrap;
+        }
+
+        /* Pattern info header */
+        .pattern-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+        }
+
+        .pattern-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .pattern-description {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Pattern navigation header */
+        .pattern-nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+        }
+
+        .pattern-nav-btn {
+            padding: 0.6rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .pattern-nav-btn:hover:not(:disabled) {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .pattern-nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .pattern-nav-info {
+            flex: 1;
+            text-align: center;
+        }
+
+        .pattern-nav-info h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+
+        .pattern-nav-info .timetable-stats {
+            justify-content: center;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Conflict warning */
+        .conflict-warning {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            color: var(--error);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .conflict-warning.hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ FAST Timetable Generator</h1>
+            <p class="subtitle">Explore slot-based timetables with flexible course options</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Sidebar - Controls -->
+            <aside class="sidebar">
+                <div class="section">
+                    <div class="section-title">Batch</div>
+                    <select id="batch" onchange="loadBatchData()">
+                        <option value="BCS-2022" selected>BCS-2022 (Semester 8)</option>
+                        <option value="BCS-2023">BCS-2023 (Semester 6)</option>
+                        <option value="BCS-2024">BCS-2024 (Semester 4)</option>
+                        <option value="BCS-2025">BCS-2025 (Semester 2)</option>
+                    </select>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Required Courses</div>
+                    <div id="selected-courses-display" class="selected-courses-container"></div>
+                    <input type="text" id="course-search" placeholder="Search courses..."
+                        oninput="filterCourses(this.value)"
+                        style="width: 100%; padding: 0.6rem 0.8rem; margin-bottom: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-family: inherit; font-size: 0.9rem;">
+                    <div class="checkbox-group" id="courses-list">
+                        <div style="color: var(--text-muted); padding: 1rem;">Loading courses...</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Wildcard Electives</div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        Auto-pick electives to fill your schedule
+                    </p>
+                    <div class="wildcard-row">
+                        <span class="wildcard-label">CS Electives</span>
+                        <div class="wildcard-controls">
+                            <button class="wildcard-btn" onclick="adjustWildcard('cs', -1)">−</button>
+                            <span class="wildcard-count" id="cs-count">0</span>
+                            <button class="wildcard-btn" onclick="adjustWildcard('cs', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="wildcard-row">
+                        <span class="wildcard-label">University Electives</span>
+                        <div class="wildcard-controls">
+                            <button class="wildcard-btn" onclick="adjustWildcard('uni', -1)">−</button>
+                            <span class="wildcard-count" id="uni-count">0</span>
+                            <button class="wildcard-btn" onclick="adjustWildcard('uni', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="wildcard-row">
+                        <span class="wildcard-label">Robo Electives</span>
+                        <div class="wildcard-controls">
+                            <button class="wildcard-btn" onclick="adjustWildcard('robo', -1)">−</button>
+                            <span class="wildcard-count" id="robo-count">0</span>
+                            <button class="wildcard-btn" onclick="adjustWildcard('robo', 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Exclude Time Slots</div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        Click to exclude times you can't attend
+                    </p>
+                    <div class="time-slot-grid" id="time-slots">
+                        <div class="time-slot" onclick="toggleSlot(this)" data-slot="08:30">08:30</div>
+                        <div class="time-slot" onclick="toggleSlot(this)" data-slot="10:00">10:00</div>
+                        <div class="time-slot" onclick="toggleSlot(this)" data-slot="11:30">11:30</div>
+                        <div class="time-slot" onclick="toggleSlot(this)" data-slot="13:00">13:00</div>
+                        <div class="time-slot" onclick="toggleSlot(this)" data-slot="14:30">14:30</div>
+                        <div class="time-slot" onclick="toggleSlot(this)" data-slot="16:00">16:00</div>
+                        <div class="time-slot" onclick="toggleSlot(this)" data-slot="17:30">17:30</div>
+                        <div class="time-slot" onclick="toggleSlot(this)" data-slot="19:00">19:00</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Max Breaks Between Classes</div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        Maximum empty slots between classes per day
+                    </p>
+                    <div class="breaks-selector">
+                        <button class="break-option active" data-breaks="any"
+                            onclick="selectMaxBreaks('any', this)">Any</button>
+                        <button class="break-option" data-breaks="0" onclick="selectMaxBreaks(0, this)">None</button>
+                        <button class="break-option" data-breaks="1" onclick="selectMaxBreaks(1, this)">1 slot</button>
+                        <button class="break-option" data-breaks="2" onclick="selectMaxBreaks(2, this)">2 slots</button>
+                        <button class="break-option" data-breaks="3" onclick="selectMaxBreaks(3, this)">3 slots</button>
+                        <button class="break-option" data-breaks="4" onclick="selectMaxBreaks(4, this)">4 slots</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Number of Days</div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        How many days per week you want classes
+                    </p>
+                    <div class="breaks-selector">
+                        <button class="break-option active" data-days="any" onclick="selectNumDays('any', this)">Any</button>
+                        <button class="break-option" data-days="2" onclick="selectNumDays(2, this)">2 days</button>
+                        <button class="break-option" data-days="3" onclick="selectNumDays(3, this)">3 days</button>
+                        <button class="break-option" data-days="4" onclick="selectNumDays(4, this)">4 days</button>
+                        <button class="break-option" data-days="5" onclick="selectNumDays(5, this)">5 days</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Exclude Instructors</div>
+                    <div id="excluded-instructors-display" class="excluded-items-display"></div>
+                    <input type="text" id="instructor-search" placeholder="Search instructors..."
+                        oninput="filterInstructors(this.value)"
+                        style="width: 100%; padding: 0.6rem 0.8rem; margin-bottom: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-family: inherit; font-size: 0.9rem;">
+                    <div class="checkbox-group" id="instructors-list" style="max-height: 150px;">
+                        <div style="color: var(--text-muted); padding: 1rem;">Loading instructors...</div>
+                    </div>
+                </div>
+
+                <button class="generate-btn" onclick="generateTimetable()" id="generate-btn">
+                    🚀 Generate Slot Patterns
+                </button>
+            </aside>
+
+            <!-- Main - Results -->
+            <main class="results">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Generating slot patterns...</p>
+                </div>
+
+                <div id="results-container">
+                    <div class="empty-state" id="empty-state">
+                        <div class="empty-icon">📅</div>
+                        <h3>No Timetables Yet</h3>
+                        <p>Select your courses and constraints, then click Generate</p>
+                        <p style="margin-top: 1rem; font-size: 0.85rem;">
+                            💡 The system will show you different <strong>slot patterns</strong>,<br>
+                            and for each slot you can see all available course options.
+                        </p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let selectedCourses = {};  // { courseName: { section: 'any' | 'BCS-4A' | etc, sections: [...] } }
+        let allCoursesData = {};   // { courseName: [section1, section2, ...] }
+        let allCoursesList = [];   // Flat list of course names for filtering
+        let excludedInstructors = [];
+        let excludedSlots = [];
+        let csElectives = 0;
+        let uniElectives = 0;
+        let roboElectives = 0;
+        let maxBreaks = 'any';  // 'any', 0, 1, 2, 3, 4
+        let numDays = 'any';    // 'any', 2, 3, 4, 5
+
+        // Slot pattern data
+        let allPatterns = [];
+        let currentPatternIndex = 0;
+        let currentSelection = {};  // Maps course short_title to selected section data
+
+        const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+        const SLOTS = ['08:30', '10:00', '11:30', '13:00', '14:30', '16:00', '17:30', '19:00'];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBatchData();
+        });
+
+        async function loadBatchData() {
+            const batch = document.getElementById('batch').value;
+            selectedCourses = {};
+            allCoursesData = {};
+            allCoursesList = [];
+            updateSelectedCoursesDisplay();
+            document.getElementById('course-search').value = '';
+
+            try {
+                // Load courses with sections
+                const coursesRes = await fetch(`/api/courses-with-sections/${batch}`);
+                if (!coursesRes.ok) throw new Error('Failed to load courses');
+                allCoursesData = await coursesRes.json();
+                allCoursesList = Object.keys(allCoursesData).filter(n => n && n.trim()).sort();
+                renderFilteredCourses(allCoursesList);
+
+                // Load instructors
+                const instructorsRes = await fetch(`/api/instructors/${batch}`);
+                if (!instructorsRes.ok) throw new Error('Failed to load instructors');
+                const instructors = await instructorsRes.json();
+                renderInstructors(instructors);
+            } catch (error) {
+                console.error('Error loading batch data:', error);
+                document.getElementById('courses-list').innerHTML =
+                    '<div style="color: var(--error); padding: 1rem;">Error loading courses. Is the server running?</div>';
+            }
+        }
+
+        function renderFilteredCourses(courseNames) {
+            const container = document.getElementById('courses-list');
+            container.innerHTML = '';
+
+            for (const courseName of courseNames) {
+                // Skip if already selected
+                if (selectedCourses[courseName]) continue;
+
+                const courseData = allCoursesData[courseName];
+                if (!courseData) continue;
+
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.dataset.course = courseName;
+
+                const isLab = courseData.is_lab;
+                const sectionCount = courseData.sections.length;
+
+                div.innerHTML = `
+                    <span>${courseName}</span>
+                    <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: auto;">
+                        ${isLab ? '🔬 ' : ''}${sectionCount} sec
+                    </span>
+                `;
+                div.onclick = () => addCourse(courseName);
+                container.appendChild(div);
+            }
+
+            if (container.children.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-muted); padding: 0.5rem; font-size: 0.85rem;">No matching courses</div>';
+            }
+        }
+
+        function filterCourses(searchTerm) {
+            const term = searchTerm.toLowerCase().trim();
+            if (!term) {
+                renderFilteredCourses(allCoursesList);
+                return;
+            }
+
+            // Fuzzy match
+            const filtered = allCoursesList.filter(courseName => {
+                const name = courseName.toLowerCase();
+                // Check if all characters appear in order OR contains the term
+                let searchIdx = 0;
+                for (let i = 0; i < name.length && searchIdx < term.length; i++) {
+                    if (name[i] === term[searchIdx]) {
+                        searchIdx++;
+                    }
+                }
+                return searchIdx === term.length || name.includes(term);
+            });
+
+            renderFilteredCourses(filtered);
+        }
+
+        function addCourse(courseName) {
+            if (selectedCourses[courseName]) return;
+
+            const courseData = allCoursesData[courseName];
+            if (!courseData) return;
+
+            // Default: all sections selected (equivalent to "any")
+            const allSectionIds = courseData.sections.map(s => s.section);
+
+            selectedCourses[courseName] = {
+                selectedSections: allSectionIds,  // Array of selected section IDs
+                sections: courseData.sections,
+                isLab: courseData.is_lab,
+                category: courseData.category
+            };
+
+            updateSelectedCoursesDisplay();
+            // Re-filter to remove from the list
+            filterCourses(document.getElementById('course-search').value);
+        }
+
+        function removeCourse(courseName) {
+            delete selectedCourses[courseName];
+            updateSelectedCoursesDisplay();
+            filterCourses(document.getElementById('course-search').value);
+        }
+
+        function toggleSectionSelection(courseName, sectionId, event) {
+            if (!selectedCourses[courseName]) return;
+
+            // Prevent event propagation
+            if (event) event.stopPropagation();
+
+            const data = selectedCourses[courseName];
+            const idx = data.selectedSections.indexOf(sectionId);
+
+            if (idx === -1) {
+                // Add section
+                data.selectedSections.push(sectionId);
+            } else {
+                // Remove section (can remove all - validation on submit)
+                data.selectedSections.splice(idx, 1);
+            }
+
+            updateSectionCheckboxes(courseName);
+        }
+
+        function selectAllSections(courseName, event) {
+            if (event) event.stopPropagation();
+            if (!selectedCourses[courseName]) return;
+            const data = selectedCourses[courseName];
+            data.selectedSections = data.sections.map(s => s.section);
+            updateSectionCheckboxes(courseName);
+        }
+
+        function deselectAllSections(courseName, event) {
+            if (event) event.stopPropagation();
+            if (!selectedCourses[courseName]) return;
+            const data = selectedCourses[courseName];
+            // Clear all sections - validation will happen on submit
+            data.selectedSections = [];
+            updateSectionCheckboxes(courseName);
+        }
+
+        // Update just the checkboxes for a course without re-rendering everything
+        function updateSectionCheckboxes(courseName) {
+            const data = selectedCourses[courseName];
+            if (!data) return;
+
+            const container = document.querySelector(`[data-course="${courseName}"]`);
+            if (!container) {
+                // Fallback to full re-render
+                updateSelectedCoursesDisplay();
+                return;
+            }
+
+            // Update checkboxes
+            const checkboxes = container.querySelectorAll('.section-checkbox');
+            checkboxes.forEach(cb => {
+                const sectionId = cb.dataset.section;
+                const isChecked = data.selectedSections.includes(sectionId);
+                cb.classList.toggle('checked', isChecked);
+                cb.querySelector('.section-check').textContent = isChecked ? '✓' : '';
+            });
+
+            // Update count
+            const countEl = container.querySelector('.section-count');
+            if (countEl) {
+                countEl.textContent = `${data.selectedSections.length}/${data.sections.length} sections`;
+            }
+
+            // Update buttons
+            const allSelected = data.selectedSections.length === data.sections.length;
+            const noneSelected = data.selectedSections.length === 0;
+
+            const btnContainer = container.querySelector('.section-picker-header');
+            if (btnContainer) {
+                // Re-render just the buttons
+                let btnHtml = `<span class="section-count ${noneSelected ? 'warning' : ''}">${data.selectedSections.length}/${data.sections.length} sections${noneSelected ? ' ⚠️' : ''}</span>`;
+                btnHtml += `<div class="section-btn-group">`;
+                if (!allSelected) {
+                    btnHtml += `<button class="select-all-btn" onclick="selectAllSections('${courseName.replace(/'/g, "\\'")}', event)">All</button>`;
+                }
+                if (!noneSelected) {
+                    btnHtml += `<button class="select-all-btn deselect" onclick="deselectAllSections('${courseName.replace(/'/g, "\\'")}', event)">Clear</button>`;
+                }
+                btnHtml += `</div>`;
+                btnContainer.innerHTML = btnHtml;
+            }
+
+            // Update container warning style
+            container.classList.toggle('no-sections-selected', noneSelected);
+        }
+
+        function updateSelectedCoursesDisplay() {
+            const container = document.getElementById('selected-courses-display');
+
+            const courseNames = Object.keys(selectedCourses);
+            if (courseNames.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            for (const courseName of courseNames) {
+                const data = selectedCourses[courseName];
+                const sections = data.sections;
+                const isLab = data.isLab;
+                const selectedCount = data.selectedSections.length;
+                const totalCount = sections.length;
+                const allSelected = selectedCount === totalCount;
+                const noneSelected = selectedCount === 0;
+
+                html += `
+                    <div class="selected-course-item ${noneSelected ? 'no-sections-selected' : ''}" data-course="${courseName}">
+                        <div class="selected-course-header">
+                            <span class="selected-course-name">
+                                ${isLab ? '🔬 ' : ''}${courseName}
+                            </span>
+                            <button class="selected-course-remove" onclick="removeCourse('${courseName.replace(/'/g, "\\'")}')">×</button>
+                        </div>
+                        <div class="section-multi-picker">
+                            <div class="section-picker-header">
+                                <span class="section-count ${noneSelected ? 'warning' : ''}">${selectedCount}/${totalCount} sections${noneSelected ? ' ⚠️' : ''}</span>
+                                <div class="section-btn-group">
+                                    ${!allSelected ? `<button class="select-all-btn" onclick="selectAllSections('${courseName.replace(/'/g, "\\'")}', event)">All</button>` : ''}
+                                    ${!noneSelected ? `<button class="select-all-btn deselect" onclick="deselectAllSections('${courseName.replace(/'/g, "\\'")}', event)">Clear</button>` : ''}
+                                </div>
+                            </div>
+                            <div class="section-checkboxes">
+                                ${sections.map(s => {
+                    const isChecked = data.selectedSections.includes(s.section);
+                    const timeStr = s.slots.map(sl => sl.day + ' ' + sl.time).join(', ');
+                    return `
+                                        <label class="section-checkbox ${isChecked ? 'checked' : ''}" data-section="${s.section}" onclick="toggleSectionSelection('${courseName.replace(/'/g, "\\'")}', '${s.section}', event)">
+                                            <span class="section-check">${isChecked ? '✓' : ''}</span>
+                                            <span class="section-info">
+                                                <span class="section-id">${s.section}</span>
+                                                <span class="section-details">${s.instructor_short} · ${timeStr}</span>
+                                            </span>
+                                        </label>
+                                    `;
+                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Legacy function for compatibility
+        function toggleCourse(course, element) {
+            addCourse(course);
+        }
+
+        let allInstructors = [];  // Store full list for filtering
+
+        function renderInstructors(instructors) {
+            allInstructors = instructors;
+            excludedInstructors = [];
+            document.getElementById('instructor-search').value = '';
+            updateExcludedInstructorsDisplay();
+            renderFilteredInstructors(instructors);
+        }
+
+        function renderFilteredInstructors(instructors) {
+            const container = document.getElementById('instructors-list');
+            container.innerHTML = '';
+
+            for (const inst of instructors) {
+                // Skip if already excluded (they're shown at the top)
+                if (excludedInstructors.includes(inst)) continue;
+
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.dataset.instructor = inst;
+                div.innerHTML = `<span>${inst}</span>`;
+                div.onclick = () => toggleInstructor(inst);
+                container.appendChild(div);
+            }
+
+            if (container.children.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-muted); padding: 0.5rem; font-size: 0.85rem;">No matching instructors</div>';
+            }
+        }
+
+        function filterInstructors(searchTerm) {
+            const term = searchTerm.toLowerCase().trim();
+            if (!term) {
+                renderFilteredInstructors(allInstructors);
+                return;
+            }
+
+            // Fuzzy match: check if all characters appear in order
+            const filtered = allInstructors.filter(inst => {
+                const name = inst.toLowerCase();
+                // Simple fuzzy: check if search term chars appear in order
+                let searchIdx = 0;
+                for (let i = 0; i < name.length && searchIdx < term.length; i++) {
+                    if (name[i] === term[searchIdx]) {
+                        searchIdx++;
+                    }
+                }
+                return searchIdx === term.length || name.includes(term);
+            });
+
+            renderFilteredInstructors(filtered);
+        }
+
+        function updateExcludedInstructorsDisplay() {
+            const container = document.getElementById('excluded-instructors-display');
+            container.innerHTML = excludedInstructors.map(inst =>
+                `<span class="excluded-item" onclick="removeExcludedInstructor('${inst.replace(/'/g, "\\'")}')">
+                    <span>${inst}</span>
+                    <span class="remove-x">×</span>
+                </span>`
+            ).join('');
+        }
+
+        function removeExcludedInstructor(inst) {
+            excludedInstructors = excludedInstructors.filter(i => i !== inst);
+            updateExcludedInstructorsDisplay();
+            // Re-filter to show the instructor back in the list
+            filterInstructors(document.getElementById('instructor-search').value);
+        }
+
+        function toggleInstructor(inst) {
+            if (!excludedInstructors.includes(inst)) {
+                excludedInstructors.push(inst);
+                updateExcludedInstructorsDisplay();
+                // Re-filter to remove from the list
+                filterInstructors(document.getElementById('instructor-search').value);
+            }
+        }
+
+        function toggleSlot(element) {
+            const slot = element.dataset.slot;
+            element.classList.toggle('excluded');
+
+            const idx = excludedSlots.indexOf(slot);
+            if (idx === -1) {
+                excludedSlots.push(slot);
+            } else {
+                excludedSlots.splice(idx, 1);
+            }
+        }
+
+        function selectMaxBreaks(value, element) {
+            maxBreaks = value;
+            // Update UI - only affect breaks buttons (those with data-breaks)
+            document.querySelectorAll('.break-option[data-breaks]').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function selectNumDays(value, element) {
+            numDays = value;
+            // Update UI - only affect days buttons (those with data-days)
+            document.querySelectorAll('.break-option[data-days]').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        // Get the number of unique days in a pattern
+        function getPatternNumDays(pattern) {
+            const days = new Set();
+            for (const slotKey of pattern.slot_keys) {
+                const day = slotKey.split('_')[0];
+                days.add(day);
+            }
+            return days.size;
+        }
+
+        // Check if a pattern meets the num days constraint
+        function patternMeetsDaysConstraint(pattern) {
+            if (numDays === 'any') return true;
+            return getPatternNumDays(pattern) === numDays;
+        }
+
+        // Calculate max breaks in a day for a given selection
+        function calculateDayBreaks(daySlotsOccupied) {
+            if (daySlotsOccupied.length <= 1) return 0;
+
+            // Sort slots by time
+            const sortedSlots = daySlotsOccupied.map(s => SLOTS.indexOf(s)).sort((a, b) => a - b);
+
+            let maxGap = 0;
+            for (let i = 1; i < sortedSlots.length; i++) {
+                const gap = sortedSlots[i] - sortedSlots[i - 1] - 1;
+                if (gap > maxGap) maxGap = gap;
+            }
+            return maxGap;
+        }
+
+        // Check if a pattern meets the max breaks constraint
+        function patternMeetsBreaksConstraint(pattern) {
+            if (maxBreaks === 'any') return true;
+
+            // Group slots by day
+            const slotsByDay = {};
+            for (const slotKey of pattern.slot_keys) {
+                const [day, time] = slotKey.split('_');
+                if (!slotsByDay[day]) slotsByDay[day] = [];
+                slotsByDay[day].push(time);
+            }
+
+            // Check each day
+            for (const day of Object.keys(slotsByDay)) {
+                const dayBreaks = calculateDayBreaks(slotsByDay[day]);
+                if (dayBreaks > maxBreaks) return false;
+            }
+            return true;
+        }
+
+        // Get the maximum breaks in any day for a pattern
+        function getPatternMaxBreaks(pattern) {
+            const slotsByDay = {};
+            for (const slotKey of pattern.slot_keys) {
+                const [day, time] = slotKey.split('_');
+                if (!slotsByDay[day]) slotsByDay[day] = [];
+                slotsByDay[day].push(time);
+            }
+
+            let maxBreak = 0;
+            for (const day of Object.keys(slotsByDay)) {
+                const dayBreaks = calculateDayBreaks(slotsByDay[day]);
+                if (dayBreaks > maxBreak) maxBreak = dayBreaks;
+            }
+            return maxBreak;
+        }
+
+        function adjustWildcard(type, delta) {
+            if (type === 'cs') {
+                csElectives = Math.max(0, csElectives + delta);
+                document.getElementById('cs-count').textContent = csElectives;
+            } else if (type === 'uni') {
+                uniElectives = Math.max(0, uniElectives + delta);
+                document.getElementById('uni-count').textContent = uniElectives;
+            } else if (type === 'robo') {
+                roboElectives = Math.max(0, roboElectives + delta);
+                document.getElementById('robo-count').textContent = roboElectives;
+            }
+        }
+
+        async function generateTimetable() {
+            const batch = document.getElementById('batch').value;
+
+            if (Object.keys(selectedCourses).length === 0 && csElectives === 0 && uniElectives === 0 && roboElectives === 0) {
+                alert('Please select at least one course or add wildcards');
+                return;
+            }
+
+            // Validate that all selected courses have at least one section
+            const coursesWithNoSections = Object.entries(selectedCourses)
+                .filter(([name, data]) => data.selectedSections.length === 0)
+                .map(([name]) => name);
+
+            if (coursesWithNoSections.length > 0) {
+                alert(`Please select at least one section for:\n• ${coursesWithNoSections.join('\n• ')}`);
+                return;
+            }
+
+            // Show loading, hide previous results
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('results-container').innerHTML = '';
+            document.getElementById('generate-btn').disabled = true;
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        batch,
+                        courses: selectedCourses,
+                        excluded_instructors: excludedInstructors,
+                        excluded_slots: excludedSlots,
+                        cs_electives: csElectives,
+                        university_electives: uniElectives,
+                        robo_electives: roboElectives
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.success || !data.patterns || data.patterns.length === 0) {
+                    document.getElementById('results-container').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">😕</div>
+                            <h3>No Valid Slot Patterns Found</h3>
+                            <p>Try removing some constraints or selecting different courses</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Filter patterns by constraints (breaks and days)
+                allPatterns = data.patterns.filter(p => 
+                    patternMeetsBreaksConstraint(p) && patternMeetsDaysConstraint(p)
+                );
+
+                if (allPatterns.length === 0) {
+                    document.getElementById('results-container').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">😕</div>
+                            <h3>No Patterns Match Filters</h3>
+                            <p>Try adjusting the breaks, days, or other constraints</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                currentPatternIndex = 0;
+                initializeSelection();
+                renderPatterns();
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('results-container').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <h3>Error</h3>
+                        <p>Failed to generate timetables. Please try again.</p>
+                    </div>
+                `;
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('generate-btn').disabled = false;
+            }
+        }
+
+        function initializeSelection() {
+            // Initialize selection from default_selection
+            const pattern = allPatterns[currentPatternIndex];
+            currentSelection = {};
+
+            for (const course of pattern.default_selection) {
+                currentSelection[course.short_title] = course;
+            }
+        }
+
+        function selectPattern(index) {
+            if (index < 0 || index >= allPatterns.length) return;
+
+            // Save scroll positions before re-rendering
+            const patternTabs = document.querySelector('.pattern-tabs');
+            const tabsScrollPos = patternTabs ? patternTabs.scrollTop : 0;
+            const pageScrollPos = window.scrollY;
+
+            currentPatternIndex = index;
+            initializeSelection();
+            renderPatterns();
+
+            // Restore scroll positions after re-rendering
+            requestAnimationFrame(() => {
+                const newPatternTabs = document.querySelector('.pattern-tabs');
+                if (newPatternTabs) {
+                    newPatternTabs.scrollTop = tabsScrollPos;
+                }
+                window.scrollTo(0, pageScrollPos);
+            });
+        }
+
+        function prevPattern() {
+            if (currentPatternIndex > 0) {
+                selectPattern(currentPatternIndex - 1);
+            }
+        }
+
+        function nextPattern() {
+            if (currentPatternIndex < allPatterns.length - 1) {
+                selectPattern(currentPatternIndex + 1);
+            }
+        }
+
+        // Keyboard navigation for patterns
+        document.addEventListener('keydown', (e) => {
+            // Only if patterns are loaded and no input is focused
+            if (allPatterns.length === 0) return;
+            if (document.activeElement.tagName === 'INPUT' ||
+                document.activeElement.tagName === 'SELECT' ||
+                document.activeElement.tagName === 'TEXTAREA') return;
+
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                prevPattern();
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                nextPattern();
+                e.preventDefault();
+            }
+        });
+
+        // Get all courses available in a specific slot
+        function getCoursesForSlot(slotKey) {
+            const pattern = allPatterns[currentPatternIndex];
+            const slot = pattern.slots.find(s => s.key === slotKey);
+            return slot ? slot.courses : [];
+        }
+
+        // Get unique courses by short_title from a slot (different sections of same course)
+        function getUniqueCoursesByTitle(slotKey) {
+            const courses = getCoursesForSlot(slotKey);
+            const byTitle = {};
+
+            for (const course of courses) {
+                if (!byTitle[course.short_title]) {
+                    byTitle[course.short_title] = [];
+                }
+                byTitle[course.short_title].push(course);
+            }
+
+            return byTitle;
+        }
+
+        // Check if selecting a course would conflict with current selection
+        function wouldConflict(courseToSelect, excludeCourse = null) {
+            const courseSlots = new Set(courseToSelect.slots.map(s => `${s.day}_${s.time.split('-')[0]}`));
+
+            for (const [title, selected] of Object.entries(currentSelection)) {
+                if (excludeCourse && title === excludeCourse) continue;
+                if (title === courseToSelect.short_title) continue;
+
+                for (const slot of selected.slots) {
+                    const slotKey = `${slot.day}_${slot.time.split('-')[0]}`;
+                    if (courseSlots.has(slotKey)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Get available sections for a course (non-conflicting with current selection)
+        function getAvailableSections(courseTitle) {
+            const pattern = allPatterns[currentPatternIndex];
+            const allSections = [];
+
+            // Collect all sections of this course from all slots
+            for (const slot of pattern.slots) {
+                for (const course of slot.courses) {
+                    if (course.short_title === courseTitle) {
+                        // Check if we already have this section
+                        const exists = allSections.some(s => s.section === course.section);
+                        if (!exists && !wouldConflict(course, courseTitle)) {
+                            allSections.push(course);
+                        }
+                    }
+                }
+            }
+
+            return allSections;
+        }
+
+        // Build the grid from current selection
+        function buildGrid() {
+            const grid = {};
+            for (const day of DAYS) {
+                grid[day] = {};
+                for (const slot of SLOTS) {
+                    grid[day][slot] = null;
+                }
+            }
+
+            for (const [title, course] of Object.entries(currentSelection)) {
+                for (const slot of course.slots) {
+                    const slotTime = slot.time.split('-')[0];
+                    if (grid[slot.day] && grid[slot.day][slotTime] !== undefined) {
+                        grid[slot.day][slotTime] = course;
+                    }
+                }
+            }
+
+            return grid;
+        }
+
+        // Get slot options map (which slots have multiple course options)
+        function getSlotOptionsMap() {
+            const pattern = allPatterns[currentPatternIndex];
+            const optionsMap = {};
+
+            for (const slot of pattern.slots) {
+                // Get unique courses for this slot
+                const uniqueTitles = new Set(slot.courses.map(c => c.short_title));
+                optionsMap[slot.key] = {
+                    numCourses: uniqueTitles.size,
+                    courses: slot.courses
+                };
+            }
+
+            return optionsMap;
+        }
+
+        function selectCourseForSlot(courseTitle, section) {
+            const pattern = allPatterns[currentPatternIndex];
+
+            // Find the course data
+            for (const slot of pattern.slots) {
+                for (const course of slot.courses) {
+                    if (course.short_title === courseTitle && course.section === section) {
+                        currentSelection[courseTitle] = course;
+                        renderPatterns();
+                        return;
+                    }
+                }
+            }
+        }
+
+        function renderPatterns() {
+            const container = document.getElementById('results-container');
+
+            if (!allPatterns || allPatterns.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📅</div>
+                        <h3>No Timetable Yet</h3>
+                        <p>Select your courses and click Generate</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const pattern = allPatterns[currentPatternIndex];
+            const grid = buildGrid();
+            const slotOptions = getSlotOptionsMap();
+            const totalCredits = Object.values(currentSelection).reduce((sum, c) => sum + (c.credit_hours || 3), 0);
+            const numCourses = Object.keys(currentSelection).length;
+
+            let html = `
+                <div class="results-header">
+                    <h2 class="results-title">Slot Patterns</h2>
+                    <span class="results-count">${allPatterns.length} pattern${allPatterns.length !== 1 ? 's' : ''} found</span>
+                </div>
+            `;
+
+            // Pattern tabs
+            if (allPatterns.length > 1) {
+                html += `<div class="pattern-tabs">`;
+                for (let i = 0; i < allPatterns.length; i++) {
+                    const p = allPatterns[i];
+                    const isActive = i === currentPatternIndex;
+                    const pBreaks = getPatternMaxBreaks(p);
+                    const pDays = getPatternNumDays(p);
+                    html += `
+                        <button class="pattern-tab ${isActive ? 'active' : ''}" onclick="selectPattern(${i})">
+                            <span class="pattern-num">Pattern ${i + 1}</span>
+                            <span class="pattern-info">${pDays}d · ${pBreaks} break${pBreaks !== 1 ? 's' : ''}</span>
+                            <span class="variation-count">${p.num_variations} variations</span>
+                        </button>
+                    `;
+                }
+                html += `</div>`;
+            }
+
+            // Pattern header with navigation
+            html += `
+                <div class="pattern-nav-header">
+                    <button class="pattern-nav-btn" onclick="prevPattern()" ${currentPatternIndex === 0 ? 'disabled' : ''}>
+                        ← Prev
+                    </button>
+                    <div class="pattern-nav-info">
+                        <h3>Pattern ${currentPatternIndex + 1} of ${allPatterns.length}</h3>
+                        <div class="timetable-stats">
+                            <span class="stat">📚 <span class="stat-value">${numCourses}</span> courses</span>
+                            <span class="stat">💳 <span class="stat-value">${totalCredits}</span> credits</span>
+                            <span class="stat">📅 <span class="stat-value">${getPatternNumDays(pattern)}</span> days</span>
+                            <span class="stat">⏸️ <span class="stat-value">${getPatternMaxBreaks(pattern)}</span> breaks</span>
+                        </div>
+                    </div>
+                    <button class="pattern-nav-btn" onclick="nextPattern()" ${currentPatternIndex === allPatterns.length - 1 ? 'disabled' : ''}>
+                        Next →
+                    </button>
+                </div>
+            `;
+
+            // Timetable grid
+            html += `
+                <div class="timetable-card">
+                    <div class="schedule-grid">
+                        <div class="grid-header"></div>
+                        ${DAYS.map(d => `<div class="grid-header">${d}</div>`).join('')}
+            `;
+
+            for (const slotTime of SLOTS) {
+                html += `<div class="grid-time">${slotTime}</div>`;
+
+                for (const day of DAYS) {
+                    const slotKey = `${day}_${slotTime}`;
+                    const course = grid[day][slotTime];
+                    const options = slotOptions[slotKey];
+
+                    if (course) {
+                        // Slot has a course
+                        const isUniElective = course.category?.includes('MG') || course.category?.includes('HSS');
+                        const isRobo = course.category?.includes('Robo');
+                        const isLab = course.is_lab;
+                        const isRequired = course.is_required;
+                        let chipClass = '';
+                        if (isLab) chipClass = 'lab';
+                        else if (isRobo) chipClass = 'robo-elective';
+                        else if (isUniElective) chipClass = 'university-elective';
+                        if (isRequired) chipClass += ' required';
+
+                        const numOptions = options ? options.numCourses : 1;
+
+                        html += `<div class="grid-cell has-options">`;
+                        if (numOptions > 1) {
+                            html += `<span class="options-badge">${numOptions} options</span>`;
+                        }
+                        html += `<div class="course-chip ${chipClass}">${course.short_title}</div>`;
+                        html += `<div style="font-size: 0.65rem; color: var(--text-muted); text-align: center;">${course.section}</div>`;
+                        html += `</div>`;
+                    } else {
+                        html += `<div class="grid-cell"></div>`;
+                    }
+                }
+            }
+
+            html += `</div></div>`;
+
+            // Course details with section selectors
+            html += `<div class="section-title" style="margin-top: 1.5rem;">Course Selection (switch sections/courses)</div>`;
+            html += `<div class="course-details">`;
+
+            // Group by course
+            for (const [courseTitle, course] of Object.entries(currentSelection)) {
+                const availableSections = getAvailableSections(courseTitle);
+                const isUniElective = course.category?.includes('MG') || course.category?.includes('HSS');
+                const isRobo = course.category?.includes('Robo');
+                const isLab = course.is_lab;
+                const isRequired = course.is_required;
+                const schedule = course.slots.map(s => `${s.day} ${s.time}`).join(' & ');
+                const venue = [...new Set(course.slots.map(s => s.venue))].join(', ');
+
+                let cardClass = '';
+                if (isLab) cardClass = 'lab-course';
+                else if (isRobo) cardClass = 'robo-course';
+                else if (isUniElective) cardClass = 'university-elective';
+
+                html += `
+                    <div class="course-detail-card ${cardClass}">
+                        <div class="course-name">
+                            ${courseTitle}
+                            ${isLab ? '<span class="course-badge lab">LAB</span>' : ''}
+                            ${isRobo ? '<span class="course-badge" style="background: #8b5cf6; color: white;">ROBO</span>' : ''}
+                            ${isRequired ? '<span class="course-badge required">REQUIRED</span>' : ''}
+                        </div>
+                        
+                        <div class="section-selector">
+                            <label>Section:</label>
+                            <select onchange="selectCourseForSlot('${courseTitle}', this.value)" class="section-select">
+                                ${availableSections.map(sec => `
+                                    <option value="${sec.section}" ${sec.section === course.section ? 'selected' : ''}>
+                                        ${sec.section} — ${sec.instructor_short || sec.instructor}
+                                    </option>
+                                `).join('')}
+                            </select>
+                            <span class="alt-count">${availableSections.length}</span>
+                        </div>
+                        
+                        <div class="course-info">
+                            <span>👤 ${course.instructor}</span>
+                            <span>📍 ${venue}</span>
+                            <span>🕐 ${schedule}</span>
+                        </div>
+                        <span class="course-category">${course.category || 'Elective'}</span>
+                    </div>
+                `;
+            }
+
+            html += `</div>`;
+
+            // Show alternative courses that could fit in slots
+            html += renderAlternativeCourses();
+
+            container.innerHTML = html;
+        }
+
+        // Find which selected course conflicts with an alternative
+        function findConflictingCourse(alternativeCourse) {
+            const altSlots = new Set(alternativeCourse.slots.map(s => `${s.day}_${s.time.split('-')[0]}`));
+
+            for (const [title, selected] of Object.entries(currentSelection)) {
+                for (const slot of selected.slots) {
+                    const slotKey = `${slot.day}_${slot.time.split('-')[0]}`;
+                    if (altSlots.has(slotKey)) {
+                        return title;
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Swap an alternative course with a conflicting selected course
+        function swapWithAlternative(altTitle, altSection, replaceTitle) {
+            const pattern = allPatterns[currentPatternIndex];
+
+            // Find the alternative course
+            for (const slot of pattern.slots) {
+                for (const course of slot.courses) {
+                    if (course.short_title === altTitle && course.section === altSection) {
+                        // Remove the course being replaced
+                        delete currentSelection[replaceTitle];
+                        // Add the alternative
+                        currentSelection[altTitle] = course;
+                        renderPatterns();
+                        return;
+                    }
+                }
+            }
+        }
+
+        function renderAlternativeCourses() {
+            const pattern = allPatterns[currentPatternIndex];
+            const selectedTitles = new Set(Object.keys(currentSelection));
+
+            // Find courses that are in the pattern but not currently selected
+            const alternatives = {};
+
+            for (const slot of pattern.slots) {
+                for (const course of slot.courses) {
+                    if (!selectedTitles.has(course.short_title)) {
+                        if (!alternatives[course.short_title]) {
+                            alternatives[course.short_title] = [];
+                        }
+                        // Check if this section is already added
+                        const exists = alternatives[course.short_title].some(c => c.section === course.section);
+                        if (!exists) {
+                            alternatives[course.short_title].push(course);
+                        }
+                    }
+                }
+            }
+
+            if (Object.keys(alternatives).length === 0) {
+                return '';
+            }
+
+            let html = `
+                <div class="section-title" style="margin-top: 1.5rem;">Alternative Courses Available in This Pattern</div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Click "Swap" to replace a conflicting course with an alternative.
+                </p>
+                <div class="course-details">
+            `;
+
+            for (const [title, sections] of Object.entries(alternatives)) {
+                const firstSection = sections[0];
+                const isUniElective = firstSection.category?.includes('MG') || firstSection.category?.includes('HSS');
+                const isRobo = firstSection.category?.includes('Robo');
+                const isLab = firstSection.is_lab;
+                const schedule = firstSection.slots.map(s => `${s.day} ${s.time}`).join(' & ');
+
+                // Find what course this would conflict with
+                const conflictsWith = findConflictingCourse(firstSection);
+
+                let cardClass = '';
+                if (isLab) cardClass = 'lab-course';
+                else if (isUniElective) cardClass = 'university-elective';
+                else if (isRobo) cardClass = 'university-elective';
+
+                html += `
+                    <div class="course-detail-card ${cardClass}" style="cursor: pointer; transition: all 0.2s;">
+                        <div class="course-name">
+                            ${title}
+                            ${isLab ? '<span class="course-badge lab">LAB</span>' : ''}
+                            ${isRobo ? '<span class="course-badge" style="background: #8b5cf6; color: white;">ROBO</span>' : ''}
+                        </div>
+                        <div class="course-info" style="margin-bottom: 0.5rem;">
+                            <span>📍 ${schedule}</span>
+                            <span>${sections.length} section${sections.length > 1 ? 's' : ''} available</span>
+                        </div>
+                        <span class="course-category">${firstSection.category || 'Elective'}</span>
+                        ${conflictsWith ? `
+                            <div style="margin-top: 0.75rem;">
+                                <button onclick="swapWithAlternative('${title}', '${firstSection.section}', '${conflictsWith}')" 
+                                    style="background: var(--accent); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;">
+                                    🔄 Swap with ${conflictsWith}
+                                </button>
+                            </div>
+                        ` : `
+                            <div style="margin-top: 0.75rem;">
+                                <button onclick="addAlternative('${title}', '${firstSection.section}')" 
+                                    style="background: var(--success); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;">
+                                    ➕ Add to Timetable
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        // Add an alternative course (if no conflict)
+        function addAlternative(altTitle, altSection) {
+            const pattern = allPatterns[currentPatternIndex];
+
+            for (const slot of pattern.slots) {
+                for (const course of slot.courses) {
+                    if (course.short_title === altTitle && course.section === altSection) {
+                        currentSelection[altTitle] = course;
+                        renderPatterns();
+                        return;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
