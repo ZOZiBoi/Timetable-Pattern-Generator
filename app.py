@@ -10,7 +10,7 @@ from collections import defaultdict
 app = Flask(__name__)
 
 # Load analyzer globally
-XLSX_PATH = "timetable/FSC Timetable Spring 2026 v1.1.xlsx"
+XLSX_PATH = "timetable/FSC Timetable Spring 2026 v1.3.xlsx"
 analyzer = None
 
 def get_analyzer():
