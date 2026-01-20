@@ -8,7 +8,6 @@ Icon
 # Python
 __pycache__/
 *.py[cod]
-*.pyc
 *$py.class
 *.so
 .Python
@@ -57,7 +56,6 @@ instance/
 .idea/
 *.swp
 *.swo
-*~
 .project
 .classpath
 .settings/
@@ -92,4 +90,3 @@ Desktop.ini
 *.temp
 *.bak
 *.backup
-*~
