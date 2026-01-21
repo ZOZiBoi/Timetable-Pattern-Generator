@@ -1977,15 +1977,18 @@
         }
 
         // Get slot options map (which slots have multiple course options)
+        // NOTE: count unique sections (section IDs) rather than course short titles
+        // so that multiple sections of the same course (e.g., 6A / 6B) are treated
+        // as separate options for the slot.
         function getSlotOptionsMap() {
             const pattern = allPatterns[currentPatternIndex];
             const optionsMap = {};
 
             for (const slot of pattern.slots) {
-                // Get unique courses for this slot
-                const uniqueTitles = new Set(slot.courses.map(c => c.short_title));
+                // Count unique section IDs for this slot
+                const uniqueSections = new Set(slot.courses.map(c => c.section));
                 optionsMap[slot.key] = {
-                    numCourses: uniqueTitles.size,
+                    numCourses: uniqueSections.size,
                     courses: slot.courses
                 };
             }

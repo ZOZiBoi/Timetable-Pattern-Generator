@@ -368,7 +368,6 @@ class TimetableAnalyzer:
                 wildcard_sections_by_name[name] = sections
         
         valid_timetables = []
-        seen_slot_patterns = set()
         
         # Generate combinations for required courses
         if not required_options:
@@ -396,12 +395,9 @@ class TimetableAnalyzer:
                 
                 # If no wildcards, just use the required combo
                 if not wildcard_section_options:
-                    slot_pattern = self._get_slot_pattern(req_list)
-                    if slot_pattern not in seen_slot_patterns:
-                        seen_slot_patterns.add(slot_pattern)
-                        valid_timetables.append(req_list)
-                        if len(valid_timetables) >= max_results:
-                            return valid_timetables
+                    valid_timetables.append(req_list)
+                    if len(valid_timetables) >= max_results:
+                        return valid_timetables
                     continue
                 
                 # Generate all combinations of wildcard sections
@@ -409,16 +405,10 @@ class TimetableAnalyzer:
                     full_combo = req_list + list(wc_section_combo)
                     
                     if not self._has_conflicts(full_combo):
-                        # Create unique key based on SLOT PATTERN (not just course names)
-                        # This allows same courses with different time slots to be separate entries
-                        slot_pattern = self._get_slot_pattern(full_combo)
-                        
-                        if slot_pattern not in seen_slot_patterns:
-                            seen_slot_patterns.add(slot_pattern)
-                            valid_timetables.append(full_combo)
-                            
-                            if len(valid_timetables) >= max_results:
-                                return valid_timetables
+                        # Add all valid combinations (allow multiple variants with same slot pattern)
+                        valid_timetables.append(full_combo)
+                        if len(valid_timetables) >= max_results:
+                            return valid_timetables
         
         return valid_timetables
     
