@@ -668,6 +668,7 @@ def interactive_mode(analyzer: TimetableAnalyzer):
 def main():
     import sys
     import argparse
+    from config import TIMETABLE_FILENAME
     
     parser = argparse.ArgumentParser(
         description="FAST Timetable Analyzer",
@@ -687,7 +688,7 @@ Examples:
   %(prog)s --courses "Web Pro" --university-electives 2 --cs-electives 1
         """
     )
-    parser.add_argument("xlsx_file", nargs="?", default="timetable/FSC TT Spring 2026 v1.3.1.xlsx",
+    parser.add_argument("xlsx_file", nargs="?", default=TIMETABLE_FILENAME,
                         help="Path to the timetable xlsx file")
     parser.add_argument("--batch", default="BCS-2022", help="Batch year (e.g., BCS-2022)")
     parser.add_argument("--courses", nargs="+", help="Required courses (short titles)")

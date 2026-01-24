@@ -6,11 +6,12 @@ Timetable Analyzer Web UI - Slot-Based Approach
 from flask import Flask, render_template, request, jsonify
 from timetable_analyzer import TimetableAnalyzer, TimetableConstraints
 from collections import defaultdict
+from config import TIMETABLE_FILENAME
 
 app = Flask(__name__)
 
 # Load analyzer globally
-XLSX_PATH = "timetable/FSC TT Spring 2026 v1.3.1.xlsx"
+XLSX_PATH = TIMETABLE_FILENAME
 analyzer = None
 
 def get_analyzer():
