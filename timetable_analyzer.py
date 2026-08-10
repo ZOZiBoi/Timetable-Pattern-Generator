@@ -98,16 +98,35 @@ class TimetableConstraints:
     section_preferences: dict[str, str] = field(default_factory=dict)  # e.g., {"AI Lab": "BCS-4A"} or {"AI": "any"}
     batch: str = "BCS-2022"
     
-    def get_semester_prefix(self) -> str:
-        """Get the semester prefix based on batch year."""
-        batch_to_semester = {
-            "BCS-2025": "BCS-2",
-            "BCS-2024": "BCS-4", 
-            "BCS-2023": "BCS-6",
-            "BCS-2022": "BCS-8",
-            "BCS-2021": "BCS-10",
-        }
-        return batch_to_semester.get(self.batch, "BCS-8")
+    def get_semester_prefix(self, available_sections: Optional[set[str]] = None) -> str:
+        """Get the semester prefix based on batch year and loaded section data (Fall vs Spring)."""
+        is_fall = False
+        if available_sections:
+            is_fall = (
+                any(s.startswith(('BCS-1', 'BCS-3', 'BCS-5', 'BCS-7', 'BCS-9')) for s in available_sections)
+                and not any(s.startswith(('BCS-2', 'BCS-4', 'BCS-6', 'BCS-8', 'BCS-10')) for s in available_sections)
+            )
+
+        if is_fall:
+            batch_to_semester = {
+                "BCS-2025": "BCS-1",
+                "BCS-2024": "BCS-3", 
+                "BCS-2023": "BCS-5",
+                "BCS-2022": "BCS-7",
+                "BCS-2021": "BCS-9",
+            }
+            default_prefix = "BCS-7"
+        else:
+            batch_to_semester = {
+                "BCS-2025": "BCS-2",
+                "BCS-2024": "BCS-4", 
+                "BCS-2023": "BCS-6",
+                "BCS-2022": "BCS-8",
+                "BCS-2021": "BCS-10",
+            }
+            default_prefix = "BCS-8"
+
+        return batch_to_semester.get(self.batch, default_prefix)
 
 
 class TimetableAnalyzer:
@@ -184,9 +203,13 @@ class TimetableAnalyzer:
         
         print(f"✓ Loaded {len(self.courses)} course offerings")
     
+    def _get_sections_set(self) -> set[str]:
+        """Get set of all BCS sections present in the dataset."""
+        return set(c.section for c in self.courses if c.section.startswith("BCS-"))
+    
     def get_courses_for_batch(self, batch: str) -> list[Course]:
         """Get all courses available for a specific batch."""
-        prefix = TimetableConstraints(batch=batch).get_semester_prefix()
+        prefix = TimetableConstraints(batch=batch).get_semester_prefix(self._get_sections_set())
         return [c for c in self.courses if c.section.startswith(prefix)]
     
     def get_unique_courses(self, courses: list[Course]) -> dict[str, list[Course]]:
@@ -253,7 +276,7 @@ class TimetableAnalyzer:
             constraints: The filtering constraints
             include_all_for_required: If True, includes courses from ALL semesters for required courses (for repeaters)
         """
-        prefix = constraints.get_semester_prefix()
+        prefix = constraints.get_semester_prefix(self._get_sections_set())
         filtered = []
         
         for course in self.courses:
@@ -297,15 +320,16 @@ class TimetableAnalyzer:
     
     def _matches_wildcard(self, course_category: str, wildcard: str) -> bool:
         """Check if a course category matches a wildcard category."""
+        cat = str(course_category).strip()
         if wildcard == "University Elective":
-            return course_category in self.UNIVERSITY_ELECTIVE_CATEGORIES
+            return cat in self.UNIVERSITY_ELECTIVE_CATEGORIES or "MG" in cat or "HSS" in cat
         elif wildcard == "CS Elective":
-            return course_category == self.CS_ELECTIVE_CATEGORY
+            return cat == self.CS_ELECTIVE_CATEGORY or ("CS" in cat and "Elective" in cat)
         elif wildcard == "Robo Elective":
-            return course_category == self.ROBO_ELECTIVE_CATEGORY
+            return cat == self.ROBO_ELECTIVE_CATEGORY or "Robo" in cat
         else:
             # Direct match for legacy support
-            return course_category == wildcard
+            return cat == wildcard
     
     def generate_timetables(self, constraints: TimetableConstraints, max_results: int = 10) -> list[list[Course]]:
         """Generate valid timetables based on constraints.
@@ -369,20 +393,22 @@ class TimetableAnalyzer:
         
         valid_timetables = []
         
-        # Generate combinations for required courses
-        if not required_options:
-            print("⚠ No required courses specified or found")
-            return []
-        
         # Generate all possible wildcard course name combinations
         wildcard_name_combos = self._generate_wildcard_combos(constraints.wildcard_counts, wildcard_by_category)
         
+        # Allow required_options to be empty if only wildcards are requested
+        req_combos = list(product(*required_options)) if required_options else [[]]
+        
+        if not required_options and (not wildcard_name_combos or wildcard_name_combos == [[]]):
+            print("⚠ No required courses and no matching wildcard electives found")
+            return []
+        
         # For each required course section combo + each wildcard combo
-        for req_combo in product(*required_options):
+        for req_combo in req_combos:
             req_list = list(req_combo)
             
             # Check for conflicts within required courses
-            if self._has_conflicts(req_list):
+            if req_list and self._has_conflicts(req_list):
                 continue
             
             for wildcard_names in wildcard_name_combos:
@@ -395,9 +421,10 @@ class TimetableAnalyzer:
                 
                 # If no wildcards, just use the required combo
                 if not wildcard_section_options:
-                    valid_timetables.append(req_list)
-                    if len(valid_timetables) >= max_results:
-                        return valid_timetables
+                    if req_list:
+                        valid_timetables.append(req_list)
+                        if len(valid_timetables) >= max_results:
+                            return valid_timetables
                     continue
                 
                 # Generate all combinations of wildcard sections

@@ -5,4 +5,4 @@ Change the TIMETABLE_FILENAME here to update it across the entire application.
 """
 
 # Timetable filename - change this to update the timetable file used across the app
-TIMETABLE_FILENAME = "timetable/FSC TT Spring 2026 v1.3.2.xlsx"
+TIMETABLE_FILENAME = "timetable/FSC_F26_TT_v1.0.3_10082026.xlsx"
