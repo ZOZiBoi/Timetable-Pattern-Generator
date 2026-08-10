@@ -1246,6 +1246,17 @@
                     </div>
                 </div>
 
+                <div class="section">
+                    <div class="section-title">Exclude Courses</div>
+                    <div id="excluded-courses-display" class="excluded-items-display"></div>
+                    <input type="text" id="exclude-course-search" placeholder="Search courses to exclude..."
+                        oninput="filterExcludeCourses(this.value)"
+                        style="width: 100%; padding: 0.6rem 0.8rem; margin-bottom: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-family: inherit; font-size: 0.9rem;">
+                    <div class="checkbox-group" id="exclude-courses-list" style="max-height: 150px;">
+                        <div style="color: var(--text-muted); padding: 1rem;">Loading courses...</div>
+                    </div>
+                </div>
+
                 <button class="generate-btn" onclick="generateTimetable()" id="generate-btn">
                     🚀 Generate Slot Patterns
                 </button>
@@ -1279,6 +1290,7 @@
         let allCoursesData = {};   // { courseName: [section1, section2, ...] }
         let allCoursesList = [];   // Flat list of course names for filtering
         let excludedInstructors = [];
+        let excludedCourses = [];
         let excludedSlots = [];
         let csElectives = 0;
         let uniElectives = 0;
@@ -1304,8 +1316,12 @@
             selectedCourses = {};
             allCoursesData = {};
             allCoursesList = [];
+            excludedCourses = [];
             updateSelectedCoursesDisplay();
+            updateExcludedCoursesDisplay();
             document.getElementById('course-search').value = '';
+            const searchExcludeInput = document.getElementById('exclude-course-search');
+            if (searchExcludeInput) searchExcludeInput.value = '';
 
             try {
                 // Load courses with sections
@@ -1314,6 +1330,7 @@
                 allCoursesData = await coursesRes.json();
                 allCoursesList = Object.keys(allCoursesData).filter(n => n && n.trim()).sort();
                 renderFilteredCourses(allCoursesList);
+                renderExcludeCourses(allCoursesList);
 
                 // Load instructors
                 const instructorsRes = await fetch(`/api/instructors/${batch}`);
@@ -1332,8 +1349,8 @@
             container.innerHTML = '';
 
             for (const courseName of courseNames) {
-                // Skip if already selected
-                if (selectedCourses[courseName]) continue;
+                // Skip if already selected or excluded
+                if (selectedCourses[courseName] || excludedCourses.includes(courseName)) continue;
 
                 const courseData = allCoursesData[courseName];
                 if (!courseData) continue;
@@ -1389,6 +1406,13 @@
             const courseData = allCoursesData[courseName];
             if (!courseData) return;
 
+            // Remove from excluded list if it was excluded
+            const excIdx = excludedCourses.indexOf(courseName);
+            if (excIdx !== -1) {
+                excludedCourses.splice(excIdx, 1);
+                updateExcludedCoursesDisplay();
+            }
+
             // Default: all sections selected (equivalent to "any")
             const allSectionIds = courseData.sections.map(s => s.section);
 
@@ -1400,14 +1424,18 @@
             };
 
             updateSelectedCoursesDisplay();
-            // Re-filter to remove from the list
+            // Re-filter to remove from lists
             filterCourses(document.getElementById('course-search').value);
+            const searchExcludeInput = document.getElementById('exclude-course-search');
+            if (searchExcludeInput) filterExcludeCourses(searchExcludeInput.value);
         }
 
         function removeCourse(courseName) {
             delete selectedCourses[courseName];
             updateSelectedCoursesDisplay();
             filterCourses(document.getElementById('course-search').value);
+            const searchExcludeInput = document.getElementById('exclude-course-search');
+            if (searchExcludeInput) filterExcludeCourses(searchExcludeInput.value);
         }
 
         function toggleSectionSelection(courseName, sectionId, event) {
@@ -1640,6 +1668,92 @@
             }
         }
 
+        let allExcludeCourses = [];  // Store full list of courses for exclude filtering
+
+        function renderExcludeCourses(courses) {
+            allExcludeCourses = courses;
+            excludedCourses = [];
+            const searchInput = document.getElementById('exclude-course-search');
+            if (searchInput) searchInput.value = '';
+            updateExcludedCoursesDisplay();
+            renderFilteredExcludeCourses(courses);
+        }
+
+        function renderFilteredExcludeCourses(courses) {
+            const container = document.getElementById('exclude-courses-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            for (const courseName of courses) {
+                // Skip if already excluded (shown at top) or selected to take
+                if (excludedCourses.includes(courseName) || selectedCourses[courseName]) continue;
+
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.dataset.course = courseName;
+                div.innerHTML = `<span>${courseName}</span>`;
+                div.onclick = () => toggleExcludeCourse(courseName);
+                container.appendChild(div);
+            }
+
+            if (container.children.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-muted); padding: 0.5rem; font-size: 0.85rem;">No matching courses</div>';
+            }
+        }
+
+        function filterExcludeCourses(searchTerm) {
+            const term = searchTerm.toLowerCase().trim();
+            if (!term) {
+                renderFilteredExcludeCourses(allExcludeCourses);
+                return;
+            }
+
+            const filtered = allExcludeCourses.filter(courseName => {
+                const name = courseName.toLowerCase();
+                let searchIdx = 0;
+                for (let i = 0; i < name.length && searchIdx < term.length; i++) {
+                    if (name[i] === term[searchIdx]) {
+                        searchIdx++;
+                    }
+                }
+                return searchIdx === term.length || name.includes(term);
+            });
+
+            renderFilteredExcludeCourses(filtered);
+        }
+
+        function updateExcludedCoursesDisplay() {
+            const container = document.getElementById('excluded-courses-display');
+            if (!container) return;
+            container.innerHTML = excludedCourses.map(c =>
+                `<span class="excluded-item" onclick="removeExcludedCourse('${c.replace(/'/g, "\\'")}')">
+                    <span>${c}</span>
+                    <span class="remove-x">×</span>
+                </span>`
+            ).join('');
+        }
+
+        function removeExcludedCourse(courseName) {
+            excludedCourses = excludedCourses.filter(c => c !== courseName);
+            updateExcludedCoursesDisplay();
+            const searchInput = document.getElementById('exclude-course-search');
+            filterExcludeCourses(searchInput ? searchInput.value : '');
+            filterCourses(document.getElementById('course-search').value);
+        }
+
+        function toggleExcludeCourse(courseName) {
+            if (selectedCourses[courseName]) {
+                removeCourse(courseName);
+            }
+            if (!excludedCourses.includes(courseName)) {
+                excludedCourses.push(courseName);
+                updateExcludedCoursesDisplay();
+                const searchInput = document.getElementById('exclude-course-search');
+                filterExcludeCourses(searchInput ? searchInput.value : '');
+                filterCourses(document.getElementById('course-search').value);
+            }
+        }
+
         function toggleSlot(element) {
             const slot = element.dataset.slot;
             element.classList.toggle('excluded');
@@ -1778,6 +1892,7 @@
                         batch,
                         courses: selectedCourses,
                         excluded_instructors: excludedInstructors,
+                        excluded_courses: excludedCourses,
                         excluded_slots: excludedSlots,
                         cs_electives: csElectives,
                         university_electives: uniElectives,

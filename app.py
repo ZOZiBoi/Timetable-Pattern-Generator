@@ -142,6 +142,7 @@ def generate_timetable():
         batch=data.get('batch', 'BCS-2022'),
         required_courses=required_courses,
         excluded_instructors=data.get('excluded_instructors', []),
+        excluded_courses=data.get('excluded_courses', []),
         excluded_time_slots=data.get('excluded_slots', []),
         wildcard_counts=wildcard_counts,
         section_preferences=section_preferences,

@@ -92,6 +92,7 @@ class Course:
 class TimetableConstraints:
     """Constraints for generating timetable."""
     excluded_instructors: list[str] = field(default_factory=list)
+    excluded_courses: list[str] = field(default_factory=list)
     excluded_time_slots: list[str] = field(default_factory=list)  # e.g., ["08:30", "19:00"]
     required_courses: list[str] = field(default_factory=list)  # Course short titles
     wildcard_counts: dict[str, int] = field(default_factory=dict)  # e.g., {"CS Elective": 2, "University Elective": 1}
@@ -299,6 +300,17 @@ class TimetableAnalyzer:
                         instructor_excluded = True
                         break
                 if instructor_excluded:
+                    continue
+            
+            # Check excluded courses
+            if constraints.excluded_courses:
+                course_excluded = False
+                for exc in constraints.excluded_courses:
+                    exc_lower = exc.lower()
+                    if exc_lower in course.short_title.lower() or exc_lower in course.title.lower() or exc_lower in course.code.lower():
+                        course_excluded = True
+                        break
+                if course_excluded:
                     continue
             
             # Check excluded time slots
@@ -648,6 +660,11 @@ def interactive_mode(analyzer: TimetableAnalyzer):
                 if 0 <= idx < len(instructors):
                     excluded_instructors.append(instructors[idx])
     
+    # Exclude courses
+    print("\nEnter course short titles to EXCLUDE (comma-separated), or press Enter to skip:")
+    exclude_course_input = input("Exclude courses: ").strip()
+    excluded_courses = [c.strip() for c in exclude_course_input.split(",") if c.strip()]
+
     # Exclude time slots
     print("\n⏰ Time Slots:")
     for i, slot in enumerate(TimetableAnalyzer.TIME_SLOTS, 1):
@@ -669,6 +686,7 @@ def interactive_mode(analyzer: TimetableAnalyzer):
         required_courses=required_courses,
         wildcard_counts=wildcard_counts,
         excluded_instructors=excluded_instructors,
+        excluded_courses=excluded_courses,
         excluded_time_slots=excluded_slots,
     )
     
@@ -720,6 +738,7 @@ Examples:
     parser.add_argument("--batch", default="BCS-2022", help="Batch year (e.g., BCS-2022)")
     parser.add_argument("--courses", nargs="+", help="Required courses (short titles)")
     parser.add_argument("--exclude-instructors", nargs="+", help="Instructors to exclude")
+    parser.add_argument("--exclude-courses", nargs="+", help="Courses to exclude")
     parser.add_argument("--exclude-slots", nargs="+", help="Time slots to exclude (e.g., 08:30 19:00)")
     parser.add_argument("--cs-electives", type=int, default=0, help="Number of CS electives to auto-add")
     parser.add_argument("--university-electives", type=int, default=0, help="Number of university electives to auto-add")
@@ -763,6 +782,7 @@ Examples:
         batch=args.batch,
         required_courses=args.courses or [],
         excluded_instructors=args.exclude_instructors or [],
+        excluded_courses=args.exclude_courses or [],
         excluded_time_slots=args.exclude_slots or [],
         wildcard_counts=wildcard_counts,
     )
