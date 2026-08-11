@@ -1131,6 +1131,13 @@
         <header>
             <h1>⚡ FAST Timetable Generator</h1>
             <p class="subtitle">Explore slot-based timetables with flexible course options</p>
+            {% if version_info %}
+            <div style="margin-top: 1rem;">
+                <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 1rem; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 20px; color: var(--accent-light); font-size: 0.85rem; font-weight: 500;">
+                    📅 {{ version_info }}
+                </span>
+            </div>
+            {% endif %}
         </header>
 
         <div class="main-grid">

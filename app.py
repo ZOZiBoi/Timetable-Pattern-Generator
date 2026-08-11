@@ -4,6 +4,8 @@ Timetable Analyzer Web UI - Slot-Based Approach
 """
 
 from flask import Flask, render_template, request, jsonify
+import os
+import re
 from timetable_analyzer import TimetableAnalyzer, TimetableConstraints
 from collections import defaultdict
 from config import TIMETABLE_FILENAME
@@ -21,9 +23,21 @@ def get_analyzer():
     return analyzer
 
 
+def get_timetable_version():
+    basename = os.path.basename(XLSX_PATH)
+    match = re.search(r'(FSC)_(F|S)(\d{2})_TT_(v[\d\.]+)', basename)
+    if match:
+        campus = match.group(1)
+        term = "Fall" if match.group(2) == 'F' else "Spring"
+        year = "20" + match.group(3)
+        version = match.group(4)
+        return f"{campus} {term} {year} {version}"
+    # Fallback to the raw filename without extension if pattern doesn't match
+    return os.path.splitext(basename)[0]
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', version_info=get_timetable_version())
 
 
 @app.route('/api/courses/<batch>')
