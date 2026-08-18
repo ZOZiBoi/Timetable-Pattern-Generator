@@ -2886,17 +2886,93 @@
             URL.revokeObjectURL(url);
         }
 
-        // ─── Google Calendar Sync (Subscribe) ────────────────────────
-        async function showGCalModal() {
+        // ─── Google Calendar Sync ────────────────────────────────────
+
+        // Generate per-event Google Calendar URLs (adds to PRIMARY calendar)
+        function generateGCalEvents() {
+            const events = [];
+            const DAY_MAP = { 'Mon': 'MO', 'Tue': 'TU', 'Wed': 'WE', 'Thu': 'TH', 'Fri': 'FR' };
+            const DAY_JS  = { 'Mon': 1,    'Tue': 2,    'Wed': 3,    'Thu': 4,    'Fri': 5 };
+            const SEMESTER_START = new Date(2026, 7, 17); // Aug 17, 2026
+
+            const pad = (n) => String(n).padStart(2, '0');
+            function fmtDate(d) {
+                return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate())
+                     + 'T' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+            }
+            function firstOccurrence(start, jsDay) {
+                const d = new Date(start);
+                while (d.getDay() !== jsDay) d.setDate(d.getDate() + 1);
+                return d;
+            }
+
+            for (const [title, course] of Object.entries(currentSelection)) {
+                const duration = course.is_lab ? 170 : 80;
+
+                // Deduplicate: earliest time per day (labs list consecutive slots)
+                const byDay = {};
+                for (const slot of course.slots) {
+                    const t = slot.time.split('-')[0];
+                    if (!byDay[slot.day] || t < byDay[slot.day].time) {
+                        byDay[slot.day] = { time: t, venue: slot.venue };
+                    }
+                }
+
+                // Group by time so Mon+Wed at same time → one recurring event
+                const byTime = {};
+                for (const [day, info] of Object.entries(byDay)) {
+                    if (!byTime[info.time]) byTime[info.time] = { days: [], venue: info.venue };
+                    byTime[info.time].days.push(day);
+                }
+
+                for (const [time, group] of Object.entries(byTime)) {
+                    const [h, m] = time.split(':').map(Number);
+                    const sortedDays = group.days.sort((a, b) => DAY_JS[a] - DAY_JS[b]);
+
+                    const first = firstOccurrence(SEMESTER_START, DAY_JS[sortedDays[0]]);
+                    first.setHours(h, m, 0, 0);
+                    const end = new Date(first.getTime() + duration * 60000);
+
+                    const byDayStr = sortedDays.map(d => DAY_MAP[d]).join(',');
+                    const rrule = `RRULE:FREQ=WEEKLY;BYDAY=${byDayStr};UNTIL=20261204T185959Z`;
+
+                    const params = new URLSearchParams({
+                        action: 'TEMPLATE',
+                        text: `${title} (${course.section})`,
+                        dates: `${fmtDate(first)}/${fmtDate(end)}`,
+                        recur: rrule,
+                        location: group.venue || 'TBD',
+                        details: `Instructor: ${course.instructor}\nSection: ${course.section}\nCategory: ${course.category || 'N/A'}\nCredits: ${course.credit_hours || 3}`,
+                        ctz: 'Asia/Karachi',
+                    });
+
+                    events.push({
+                        title,
+                        section: course.section,
+                        instructor: course.instructor,
+                        days: sortedDays.join(', '),
+                        time,
+                        duration,
+                        venue: group.venue || 'TBD',
+                        isLab: course.is_lab,
+                        url: `https://calendar.google.com/calendar/render?${params.toString()}`,
+                    });
+                }
+            }
+            return events;
+        }
+
+        let gcalNextIndex = 0;
+        let gcalCachedEvents = [];
+
+        function showGCalModal() {
             if (!currentSelection || Object.keys(currentSelection).length === 0) {
                 alert('No timetable selected. Generate a timetable first.');
                 return;
             }
 
-            // Get or reuse calendar ID from localStorage
-            let calendarId = localStorage.getItem('fast_tt_calendar_id') || null;
+            const events = generateGCalEvents();
 
-            // Create or reuse modal overlay
             let overlay = document.getElementById('gcal-modal-overlay');
             if (!overlay) {
                 overlay = document.createElement('div');
@@ -2905,120 +2981,147 @@
                 document.body.appendChild(overlay);
             }
 
-            // Show loading
+            const endH = (m) => { const h = Math.floor(m / 60); const mm = m % 60; return `${h}h${mm ? mm + 'm' : ''}`; };
+
+            const eventsHtml = events.map((ev, i) => `
+                <div class="gcal-course-item" id="gcal-item-${i}">
+                    <div class="gcal-course-info">
+                        <div class="gcal-course-name">${ev.title} ${ev.isLab ? '<span style="color: var(--warning); font-size: 0.75rem;">LAB</span>' : ''}</div>
+                        <div class="gcal-course-detail">${ev.section} · ${ev.days} · ${ev.time} · ${endH(ev.duration)}</div>
+                        <div class="gcal-course-detail">📍 ${ev.venue} · 👤 ${ev.instructor}</div>
+                    </div>
+                    <a href="${ev.url}" target="_blank" rel="noopener" class="gcal-add-link" id="gcal-link-${i}"
+                       onclick="markGCalAdded(${i})">
+                        + Add
+                    </a>
+                </div>
+            `).join('');
+
             overlay.innerHTML = `
                 <div class="gcal-modal">
                     <div class="gcal-modal-header">
-                        <span class="gcal-modal-title">📅 Publishing Timetable…</span>
+                        <span class="gcal-modal-title">📅 Add to Your Calendar</span>
                         <button class="gcal-modal-close" onclick="closeGCalModal()">✕</button>
                     </div>
-                    <div style="text-align: center; padding: 2.5rem 1rem;">
-                        <div style="font-size: 2rem; margin-bottom: 0.75rem; animation: pulse 1.5s infinite;">⏳</div>
-                        <p style="color: var(--text-secondary);">Generating your calendar link…</p>
+                    <div class="gcal-modal-desc">
+                        Events go directly to your <strong>primary Google Calendar</strong> — visible to anyone you share your calendar with.
+                        Each repeats weekly <strong>Aug 17 – Dec 4</strong>. Click <strong>Add</strong> per course, or use the step-through button below.
                     </div>
-                </div>
-            `;
-            overlay.classList.add('active');
-            overlay.onclick = (e) => { if (e.target === overlay) closeGCalModal(); };
-            document.addEventListener('keydown', gcalEscHandler);
 
-            try {
-                const resp = await fetch('/api/calendar/subscribe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        calendar_id: calendarId,
-                        courses: currentSelection,
-                    })
-                });
-                const data = await resp.json();
+                    ${eventsHtml}
 
-                if (!data.success) throw new Error(data.error || 'Failed');
+                    <div class="gcal-footer-btns">
+                        <button class="gcal-add-all" id="gcal-add-next-btn" onclick="addNextToGCal()">Add Next ▸</button>
+                        <button class="gcal-download-ics" onclick="closeGCalModal(); downloadICS();">📥 .ics file</button>
+                    </div>
 
-                // Persist calendar ID for future updates
-                localStorage.setItem('fast_tt_calendar_id', data.calendar_id);
-
-                const calUrl = data.calendar_url;
-                const webcalUrl = calUrl.replace(/^https?:/, 'webcal:');
-                const courseCount = Object.keys(currentSelection).length;
-
-                const courseList = Object.entries(currentSelection).map(([title, c]) => {
-                    const sched = c.slots.map(s => s.day + ' ' + s.time.split('-')[0]).join(', ');
-                    return `<div class="gcal-course-detail" style="padding: 0.2rem 0;">• ${title} (${c.section}) — ${sched}</div>`;
-                }).join('');
-
-                overlay.innerHTML = `
-                    <div class="gcal-modal">
-                        <div class="gcal-modal-header">
-                            <span class="gcal-modal-title">✅ Calendar Published!</span>
-                            <button class="gcal-modal-close" onclick="closeGCalModal()">✕</button>
-                        </div>
-                        <div class="gcal-modal-desc">
-                            Your timetable with <strong>${courseCount} courses</strong> is live at the link below.
-                            Subscribe in any calendar app — it stays updated when you re-sync.
-                        </div>
-
-                        <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem; margin-bottom: 1rem;">
-                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">Calendar URL</div>
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <input type="text" value="${calUrl}" readonly id="gcal-url-input"
-                                    style="flex: 1; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.75rem; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; outline: none; min-width: 0;">
-                                <button onclick="copyCalUrl()" id="gcal-copy-btn"
-                                    style="padding: 0.5rem 0.85rem; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s;">
-                                    Copy
+                    <details style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                        <summary style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; font-weight: 500;">
+                            🔗 Or subscribe to a live calendar feed (separate calendar)
+                        </summary>
+                        <div style="padding-top: 0.75rem;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.5;">
+                                A subscribable URL that auto-updates when you re-sync. Events appear in a <em>separate</em> calendar
+                                (not your primary), so they won't be visible via your shared main calendar.
+                            </div>
+                            <div id="gcal-subscribe-section">
+                                <button class="gcal-download-ics" onclick="publishCalendarFeed()" style="width: 100%;">
+                                    Generate Calendar Feed Link
                                 </button>
                             </div>
                         </div>
+                    </details>
+                </div>
+            `;
 
-                        <div class="gcal-footer-btns" style="flex-direction: column;">
-                            <a href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}" target="_blank" rel="noopener"
-                               class="gcal-add-all" style="text-decoration: none; text-align: center; display: block;">
-                                Subscribe in Google Calendar
-                            </a>
-                            <a href="${webcalUrl}" class="gcal-download-ics" style="text-decoration: none; text-align: center; display: block;">
-                                Open in default calendar app
-                            </a>
+            overlay.classList.add('active');
+            gcalNextIndex = 0;
+            gcalCachedEvents = events;
+            updateAddNextBtn();
+
+            overlay.onclick = (e) => { if (e.target === overlay) closeGCalModal(); };
+            document.addEventListener('keydown', gcalEscHandler);
+        }
+
+        // Publish a subscribable calendar feed (secondary option)
+        async function publishCalendarFeed() {
+            const section = document.getElementById('gcal-subscribe-section');
+            section.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 0.5rem;">Publishing…</p>';
+
+            try {
+                let calendarId = localStorage.getItem('fast_tt_calendar_id') || null;
+                const resp = await fetch('/api/calendar/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ calendar_id: calendarId, courses: currentSelection })
+                });
+                const data = await resp.json();
+                if (!data.success) throw new Error(data.error || 'Failed');
+
+                localStorage.setItem('fast_tt_calendar_id', data.calendar_id);
+                const calUrl = data.calendar_url;
+                const webcalUrl = calUrl.replace(/^https?:/, 'webcal:');
+
+                section.innerHTML = `
+                    <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="text" value="${calUrl}" readonly id="gcal-url-input"
+                                style="flex: 1; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.6rem; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; outline: none; min-width: 0;">
+                            <button onclick="copyCalUrl()" id="gcal-copy-btn"
+                                style="padding: 0.4rem 0.7rem; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                Copy
+                            </button>
                         </div>
-
-                        <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                            <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">Manual setup:</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.6;">
-                                1. Open <strong>Google Calendar</strong> → click <strong>+</strong> next to "Other calendars"<br>
-                                2. Select <strong>"From URL"</strong><br>
-                                3. Paste the calendar URL above and click <strong>"Add calendar"</strong>
-                            </div>
-                        </div>
-
-                        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(99, 102, 241, 0.08); border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.15);">
-                            <div style="font-size: 0.75rem; color: var(--accent-light); line-height: 1.5;">
-                                💡 Changed your mind? Select a different variation and click "Sync to Calendar" again — the same link will update automatically.
-                            </div>
-                        </div>
-
-                        <details style="margin-top: 1rem;">
-                            <summary style="font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Synced courses (${courseCount})</summary>
-                            <div style="padding: 0.5rem 0;">${courseList}</div>
-                        </details>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <a href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}" target="_blank" rel="noopener"
+                           style="flex: 1; display: block; text-align: center; padding: 0.5rem; background: #4285f4; color: white; border-radius: 8px; text-decoration: none; font-size: 0.8rem; font-weight: 600;">
+                            Subscribe in Google Calendar
+                        </a>
+                        <a href="${webcalUrl}" style="display: block; text-align: center; padding: 0.5rem; background: var(--bg-hover); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 8px; text-decoration: none; font-size: 0.8rem;">
+                            Default App
+                        </a>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.7rem; color: var(--accent-light);">
+                        💡 Re-sync anytime to update this same URL.
                     </div>
                 `;
             } catch (err) {
-                console.error('Subscribe error:', err);
-                overlay.innerHTML = `
-                    <div class="gcal-modal">
-                        <div class="gcal-modal-header">
-                            <span class="gcal-modal-title">❌ Error</span>
-                            <button class="gcal-modal-close" onclick="closeGCalModal()">✕</button>
-                        </div>
-                        <div class="gcal-modal-desc">
-                            Failed to publish the calendar. Please try again, or download the .ics file instead.
-                        </div>
-                        <div class="gcal-footer-btns">
-                            <button class="gcal-add-all" onclick="closeGCalModal(); showGCalModal();">Retry</button>
-                            <button class="gcal-download-ics" onclick="closeGCalModal(); downloadICS();">📥 Download .ics</button>
-                        </div>
-                    </div>
-                `;
+                section.innerHTML = '<p style="color: var(--error); font-size: 0.8rem;">Failed to generate link. Try the .ics download instead.</p>';
             }
+        }
+
+        function updateAddNextBtn() {
+            const btn = document.getElementById('gcal-add-next-btn');
+            if (!btn) return;
+            if (gcalNextIndex >= gcalCachedEvents.length) {
+                btn.textContent = '✓ All Added';
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.cursor = 'default';
+                btn.style.background = 'var(--success)';
+            } else {
+                const ev = gcalCachedEvents[gcalNextIndex];
+                btn.textContent = `Add Next: ${ev.title} (${gcalNextIndex + 1}/${gcalCachedEvents.length}) ▸`;
+            }
+        }
+
+        function addNextToGCal() {
+            if (gcalNextIndex >= gcalCachedEvents.length) return;
+            const ev = gcalCachedEvents[gcalNextIndex];
+            window.open(ev.url, '_blank');
+            markGCalAdded(gcalNextIndex);
+            gcalNextIndex++;
+            updateAddNextBtn();
+        }
+
+        function markGCalAdded(index) {
+            setTimeout(() => {
+                const link = document.getElementById(`gcal-link-${index}`);
+                const item = document.getElementById(`gcal-item-${index}`);
+                if (link) { link.classList.add('added'); link.textContent = '✓ Added'; }
+                if (item) item.classList.add('is-added');
+            }, 300);
         }
 
         function gcalEscHandler(e) {
