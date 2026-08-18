@@ -98,6 +98,7 @@ class TimetableConstraints:
     wildcard_counts: dict[str, int] = field(default_factory=dict)  # e.g., {"CS Elective": 2, "University Elective": 1}
     section_preferences: dict[str, str] = field(default_factory=dict)  # e.g., {"AI Lab": "BCS-4A"} or {"AI": "any"}
     batch: str = "BCS-2022"
+    only_repeater_sections: bool = False
     
     def get_semester_prefix(self, available_sections: Optional[set[str]] = None) -> str:
         """Get the semester prefix based on batch year and loaded section data (Fall vs Spring)."""
@@ -270,6 +271,12 @@ class TimetableAnalyzer:
         
         return {k: sorted(list(v)) for k, v in by_category.items()}
     
+    @staticmethod
+    def is_repeater_section(section: str) -> bool:
+        """Check if a section is designated for repeaters (e.g. BCS-9A, BCS-7A/9A, BCS-5M, BCS-7M)."""
+        s = (section or "").strip()
+        return "9" in s or s.endswith("M") or s.endswith("R")
+
     def filter_courses(self, constraints: TimetableConstraints, include_all_for_required: bool = True) -> list[Course]:
         """Filter courses based on constraints.
         
@@ -280,17 +287,36 @@ class TimetableAnalyzer:
         prefix = constraints.get_semester_prefix(self._get_sections_set())
         filtered = []
         
+        # Pre-identify courses that have dedicated repeater sections
+        courses_with_repeater_sections = set()
+        if constraints.only_repeater_sections:
+            for c in self.courses:
+                if c.section.startswith("BCS-") and self.is_repeater_section(c.section):
+                    courses_with_repeater_sections.add(c.short_title)
+        
         for course in self.courses:
             # Only consider BCS courses
             if not course.section.startswith("BCS-"):
                 continue
             
-            # Check if this is a required course (allow from any semester for repeaters)
             is_required = course.short_title in constraints.required_courses
+            is_rep_sec = self.is_repeater_section(course.section)
             
-            # For non-required courses (wildcards), filter by batch
-            if not is_required and not course.section.startswith(prefix):
-                continue
+            # Enforce repeater toggle if active
+            if constraints.only_repeater_sections:
+                if is_required:
+                    # If this required course has repeater sections, only include repeater sections.
+                    # Otherwise (e.g. repeating a course only offered in standard sections), retain available sections.
+                    if course.short_title in courses_with_repeater_sections and not is_rep_sec:
+                        continue
+                else:
+                    # For wildcards/electives, ONLY include repeater sections when repeater mode is active
+                    if not is_rep_sec:
+                        continue
+            else:
+                # Standard filtering: non-required courses (wildcards) must match batch prefix
+                if not is_required and not course.section.startswith(prefix):
+                    continue
             
             # Check excluded instructors
             if constraints.excluded_instructors:
@@ -336,7 +362,7 @@ class TimetableAnalyzer:
         if wildcard == "University Elective":
             return cat in self.UNIVERSITY_ELECTIVE_CATEGORIES or "MG" in cat or "HSS" in cat
         elif wildcard == "CS Elective":
-            return cat == self.CS_ELECTIVE_CATEGORY or ("CS" in cat and "Elective" in cat)
+            return cat == self.CS_ELECTIVE_CATEGORY or ("CS" in cat and "Elective" in cat) or "Robo" in cat
         elif wildcard == "Robo Elective":
             return cat == self.ROBO_ELECTIVE_CATEGORY or "Robo" in cat
         else:
@@ -472,7 +498,8 @@ class TimetableAnalyzer:
             
             available = wildcard_by_category[cat]
             # Get all combinations of 'count' courses from this category
-            cat_combos = list(iter_combinations(available, min(count, len(available))))
+            # If len(available) < count, this will naturally return an empty list
+            cat_combos = list(iter_combinations(available, count))
             
             # Combine with existing combos
             new_all = []

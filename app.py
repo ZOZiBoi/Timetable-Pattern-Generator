@@ -3,14 +3,22 @@
 Timetable Analyzer Web UI - Slot-Based Approach
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
 import os
 import re
+import json
+import secrets
+import uuid as uuid_module
+from datetime import datetime, timedelta
 from timetable_analyzer import TimetableAnalyzer, TimetableConstraints
 from collections import defaultdict
 from config import TIMETABLE_FILENAME
 
 app = Flask(__name__)
+
+# Calendar subscription storage
+CALENDARS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'calendars')
+os.makedirs(CALENDARS_DIR, exist_ok=True)
 
 # Load analyzer globally
 XLSX_PATH = TIMETABLE_FILENAME
@@ -160,6 +168,7 @@ def generate_timetable():
         excluded_time_slots=data.get('excluded_slots', []),
         wildcard_counts=wildcard_counts,
         section_preferences=section_preferences,
+        only_repeater_sections=data.get('only_repeater', False),
     )
     
     a = get_analyzer()
@@ -265,10 +274,162 @@ def generate_timetable():
         'days': a.DAYS
     })
 
+@app.route('/api/calendar/subscribe', methods=['POST'])
+def subscribe_calendar():
+    """Store a timetable selection and return a subscribable calendar URL."""
+    data = request.json
+    calendar_id = data.get('calendar_id') or secrets.token_urlsafe(8)
+    courses = data.get('courses', {})
+
+    # Sanitize ID
+    calendar_id = re.sub(r'[^A-Za-z0-9_-]', '', calendar_id)
+    if not calendar_id:
+        return jsonify({'success': False, 'error': 'Invalid calendar ID'}), 400
+
+    # Persist selection
+    cal_path = os.path.join(CALENDARS_DIR, f'{calendar_id}.json')
+    with open(cal_path, 'w') as f:
+        json.dump(courses, f)
+
+    cal_url = request.host_url.rstrip('/') + f'/calendar/{calendar_id}.ics'
+
+    return jsonify({
+        'success': True,
+        'calendar_id': calendar_id,
+        'calendar_url': cal_url,
+    })
+
+
+@app.route('/calendar/<calendar_id>.ics')
+def serve_calendar(calendar_id):
+    """Serve a dynamically generated ICS file for calendar subscription."""
+    if not re.match(r'^[A-Za-z0-9_-]+$', calendar_id):
+        return Response('Invalid calendar ID', status=400)
+
+    cal_path = os.path.join(CALENDARS_DIR, f'{calendar_id}.json')
+    if not os.path.exists(cal_path):
+        return Response('Calendar not found', status=404)
+
+    with open(cal_path) as f:
+        courses = json.load(f)
+
+    ics_content = _generate_ics(courses)
+
+    return Response(
+        ics_content,
+        mimetype='text/calendar',
+        headers={
+            'Content-Disposition': f'inline; filename=timetable.ics',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+        }
+    )
+
+
+def _generate_ics(courses: dict) -> str:
+    """Build an RFC 5545 ICS string from stored course selection."""
+    SEMESTER_START = datetime(2026, 8, 17)
+    SEMESTER_END = datetime(2026, 12, 4, 23, 59, 59)
+
+    DAY_ICS = {'Mon': 'MO', 'Tue': 'TU', 'Wed': 'WE', 'Thu': 'TH', 'Fri': 'FR'}
+    DAY_WEEKDAY = {'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4}
+
+    LECTURE_DUR = timedelta(minutes=80)
+    LAB_DUR = timedelta(minutes=170)
+
+    def fmt(dt):
+        return dt.strftime('%Y%m%dT%H%M%S')
+
+    events = []
+
+    for title, course in courses.items():
+        is_lab = course.get('is_lab', False)
+        dur = LAB_DUR if is_lab else LECTURE_DUR
+
+        # Deduplicate: earliest time per day (labs span two consecutive slots)
+        by_day = {}
+        for slot in course.get('slots', []):
+            t = slot['time'].split('-')[0]
+            d = slot['day']
+            if d not in by_day or t < by_day[d]['time']:
+                by_day[d] = {'time': t, 'venue': slot.get('venue', 'TBD')}
+
+        # Group by time so Mon+Wed at same time → single recurring event
+        by_time = {}
+        for day, info in by_day.items():
+            t = info['time']
+            if t not in by_time:
+                by_time[t] = {'days': [], 'venue': info['venue']}
+            by_time[t]['days'].append(day)
+
+        for time_str, group in by_time.items():
+            h, m = map(int, time_str.split(':'))
+            sorted_days = sorted(group['days'], key=lambda d: DAY_WEEKDAY.get(d, 0))
+
+            # First occurrence of the earliest weekday on or after semester start
+            first = SEMESTER_START
+            target_wd = DAY_WEEKDAY[sorted_days[0]]
+            while first.weekday() != target_wd:
+                first += timedelta(days=1)
+            start_dt = first.replace(hour=h, minute=m, second=0)
+            end_dt = start_dt + dur
+
+            byday = ','.join(DAY_ICS[d] for d in sorted_days)
+            uid = str(uuid_module.uuid5(uuid_module.NAMESPACE_URL, f'{title}_{time_str}_{byday}'))
+
+            section = course.get('section', '')
+            instructor = course.get('instructor', 'TBD')
+            category = course.get('category', 'N/A')
+            credits = course.get('credit_hours', 3)
+            location = group['venue'] or 'TBD'
+
+            event_lines = [
+                'BEGIN:VEVENT',
+                f'UID:{uid}',
+                f'DTSTAMP:{datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")}',
+                f'DTSTART;TZID=Asia/Karachi:{fmt(start_dt)}',
+                f'DTEND;TZID=Asia/Karachi:{fmt(end_dt)}',
+                f'RRULE:FREQ=WEEKLY;BYDAY={byday};UNTIL={fmt(SEMESTER_END)}',
+                f'SUMMARY:{title} ({section})',
+                f'DESCRIPTION:Instructor: {instructor}\\nSection: {section}\\nCategory: {category}\\nCredits: {credits}',
+                f'LOCATION:{location}',
+                'STATUS:CONFIRMED',
+                'END:VEVENT',
+            ]
+            events.append('\r\n'.join(event_lines))
+
+    vtimezone = '\r\n'.join([
+        'BEGIN:VTIMEZONE',
+        'TZID:Asia/Karachi',
+        'BEGIN:STANDARD',
+        'DTSTART:19700101T000000',
+        'TZOFFSETFROM:+0500',
+        'TZOFFSETTO:+0500',
+        'TZNAME:PKT',
+        'END:STANDARD',
+        'END:VTIMEZONE',
+    ])
+
+    return '\r\n'.join([
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//FAST Timetable Generator//EN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:FAST Fall 2026 Timetable',
+        'X-WR-TIMEZONE:Asia/Karachi',
+        'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+        'X-PUBLISHED-TTL:PT1H',
+        vtimezone,
+        '\r\n'.join(events),
+        'END:VCALENDAR',
+    ])
+
 
 if __name__ == '__main__':
     print("🚀 Starting Timetable Analyzer Web UI...")
     print("📂 Loading timetable data...")
     get_analyzer()  # Pre-load
-    print("✅ Ready! Open http://127.0.0.1:5000 in your browser")
-    app.run(debug=True, port=5000)
+    print("✅ Ready! Open http://127.0.0.1:5001 in your browser")
+    app.run(debug=True, port=5001)

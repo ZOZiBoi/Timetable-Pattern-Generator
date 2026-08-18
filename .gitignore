@@ -90,3 +90,6 @@ Desktop.ini
 *.temp
 *.bak
 *.backup
+
+# Calendar subscriptions (user data)
+calendars/

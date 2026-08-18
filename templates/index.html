@@ -635,6 +635,244 @@
             color: var(--text-secondary);
         }
 
+        .download-ics-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.1rem;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+        }
+
+        .download-ics-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+            background: linear-gradient(135deg, #34d399, #10b981);
+        }
+
+        .download-ics-btn:active {
+            transform: translateY(0);
+        }
+
+        .download-ics-btn .btn-icon {
+            font-size: 1rem;
+        }
+
+        .gcal-sync-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.1rem;
+            background: linear-gradient(135deg, #4285f4, #1a73e8);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.25);
+        }
+
+        .gcal-sync-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(66, 133, 244, 0.4);
+            background: linear-gradient(135deg, #5a95f5, #4285f4);
+        }
+
+        .gcal-sync-btn:active {
+            transform: translateY(0);
+        }
+
+        .gcal-sync-btn .btn-icon {
+            font-size: 1rem;
+        }
+
+        /* Google Calendar Modal */
+        .gcal-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .gcal-modal-overlay.active {
+            display: flex;
+        }
+
+        .gcal-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            max-width: 540px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 1.75rem;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+        }
+
+        .gcal-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .gcal-modal-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .gcal-modal-close {
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.25rem 0.6rem;
+            border-radius: 8px;
+            line-height: 1;
+            transition: all 0.2s;
+        }
+
+        .gcal-modal-close:hover {
+            color: var(--text-primary);
+            background: var(--bg-card);
+            border-color: var(--border-light);
+        }
+
+        .gcal-modal-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.25rem;
+            line-height: 1.6;
+        }
+
+        .gcal-course-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.85rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border);
+            gap: 0.75rem;
+            transition: border-color 0.2s;
+        }
+
+        .gcal-course-item:hover {
+            border-color: var(--border-light);
+        }
+
+        .gcal-course-item.is-added {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .gcal-course-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .gcal-course-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.15rem;
+        }
+
+        .gcal-course-detail {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .gcal-add-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.85rem;
+            background: #4285f4;
+            color: white;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .gcal-add-link:hover {
+            background: #5a95f5;
+            transform: translateY(-1px);
+        }
+
+        .gcal-add-link.added {
+            background: var(--success);
+            pointer-events: none;
+        }
+
+        .gcal-footer-btns {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+        }
+
+        .gcal-add-all {
+            flex: 1;
+            padding: 0.7rem;
+            background: linear-gradient(135deg, #4285f4, #1a73e8);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .gcal-add-all:hover {
+            background: linear-gradient(135deg, #5a95f5, #4285f4);
+        }
+
+        .gcal-download-ics {
+            padding: 0.7rem 1rem;
+            background: var(--bg-hover);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .gcal-download-ics:hover {
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+
         /* Pattern Tabs */
         .pattern-tabs {
             display: flex;
@@ -1159,6 +1397,13 @@
                     <input type="text" id="course-search" placeholder="Search courses..."
                         oninput="filterCourses(this.value)"
                         style="width: 100%; padding: 0.6rem 0.8rem; margin-bottom: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-family: inherit; font-size: 0.9rem;">
+                    
+                    <label class="section-checkbox" style="margin-bottom: 0.5rem; background: transparent; border: none; padding: 0 0.2rem; cursor: pointer;">
+                        <input type="checkbox" id="repeater-toggle" onchange="toggleRepeaterCheckbox(this)" style="display: none;">
+                        <div class="section-check" id="repeater-check-box" style="margin-right: 0.5rem; background: var(--bg-card);"></div>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);">Only Repeater Courses (Seniors / Repeat Sections)</span>
+                    </label>
+
                     <div class="checkbox-group" id="courses-list">
                         <div style="color: var(--text-muted); padding: 1rem;">Loading courses...</div>
                     </div>
@@ -1384,15 +1629,47 @@
             }
         }
 
+        function toggleRepeaterCheckbox(checkbox) {
+            const checkIcon = document.getElementById('repeater-check-box');
+            checkIcon.textContent = checkbox.checked ? '✓' : '';
+            if (checkbox.checked) {
+                checkIcon.style.background = 'var(--accent)';
+                checkIcon.style.borderColor = 'var(--accent)';
+                checkIcon.style.color = 'white';
+            } else {
+                checkIcon.style.background = 'var(--bg-card)';
+                checkIcon.style.borderColor = 'var(--border)';
+                checkIcon.style.color = 'var(--accent)';
+            }
+            filterCourses(document.getElementById('course-search').value);
+        }
+
+        function isRepeaterSection(section) {
+            if (!section) return false;
+            return section.includes('9') || section.endsWith('M') || section.endsWith('R');
+        }
+
         function filterCourses(searchTerm) {
-            const term = searchTerm.toLowerCase().trim();
+            const term = (searchTerm || '').toLowerCase().trim();
+            const showRepeaterOnly = document.getElementById('repeater-toggle') && document.getElementById('repeater-toggle').checked;
+            
+            let filtered = allCoursesList;
+
+            if (showRepeaterOnly) {
+                filtered = filtered.filter(courseName => {
+                    const courseData = allCoursesData[courseName];
+                    if (!courseData) return false;
+                    return courseData.sections.some(s => isRepeaterSection(s.section));
+                });
+            }
+
             if (!term) {
-                renderFilteredCourses(allCoursesList);
+                renderFilteredCourses(filtered);
                 return;
             }
 
             // Fuzzy match
-            const filtered = allCoursesList.filter(courseName => {
+            filtered = filtered.filter(courseName => {
                 const name = courseName.toLowerCase();
                 // Check if all characters appear in order OR contains the term
                 let searchIdx = 0;
@@ -1903,7 +2180,8 @@
                         excluded_slots: excludedSlots,
                         cs_electives: csElectives,
                         university_electives: uniElectives,
-                        robo_electives: roboElectives
+                        robo_electives: roboElectives,
+                        only_repeater: document.getElementById('repeater-toggle') && document.getElementById('repeater-toggle').checked
                     })
                 });
 
@@ -2156,7 +2434,15 @@
             let html = `
                 <div class="results-header">
                     <h2 class="results-title">Slot Patterns</h2>
-                    <span class="results-count">${allPatterns.length} pattern${allPatterns.length !== 1 ? 's' : ''} found</span>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                        <button class="gcal-sync-btn" onclick="showGCalModal()" title="Publish a subscribable calendar link">
+                            <span class="btn-icon">📅</span> Sync to Calendar
+                        </button>
+                        <button class="download-ics-btn" onclick="downloadICS()" title="Download as .ics calendar file (works with Apple Calendar, Outlook)">
+                            <span class="btn-icon">📥</span> .ics file
+                        </button>
+                        <span class="results-count">${allPatterns.length} pattern${allPatterns.length !== 1 ? 's' : ''} found</span>
+                    </div>
                 </div>
             `;
 
@@ -2434,6 +2720,330 @@
                     }
                 }
             }
+        }
+
+        // ─── ICS Calendar Download ───────────────────────────────────
+        function downloadICS() {
+            if (!currentSelection || Object.keys(currentSelection).length === 0) {
+                alert('No timetable selected. Generate a timetable first.');
+                return;
+            }
+
+            // Fall semester boundaries
+            const SEMESTER_START = new Date(2026, 7, 17); // Aug 17, 2026 (month is 0-indexed)
+            const SEMESTER_END   = new Date(2026, 11, 4); // Dec 4, 2026
+
+            // Map app day names to ICS BYDAY values and JS day-of-week (0=Sun)
+            const DAY_MAP = {
+                'Mon': { ics: 'MO', js: 1 },
+                'Tue': { ics: 'TU', js: 2 },
+                'Wed': { ics: 'WE', js: 3 },
+                'Thu': { ics: 'TH', js: 4 },
+                'Fri': { ics: 'FR', js: 5 },
+            };
+
+            // Slot durations in minutes
+            const LECTURE_DURATION = 80;
+            const LAB_DURATION = 170;
+
+            // Format Date to ICS datetime string (YYYYMMDDTHHMMSS) — local time, no Z
+            function toICSDate(date) {
+                const pad = (n) => String(n).padStart(2, '0');
+                return date.getFullYear()
+                    + pad(date.getMonth() + 1)
+                    + pad(date.getDate())
+                    + 'T'
+                    + pad(date.getHours())
+                    + pad(date.getMinutes())
+                    + pad(date.getSeconds());
+            }
+
+            // Format Date to ICS date-only string (YYYYMMDD)
+            function toICSDateOnly(date) {
+                const pad = (n) => String(n).padStart(2, '0');
+                return date.getFullYear() + pad(date.getMonth() + 1) + pad(date.getDate());
+            }
+
+            // Find the first occurrence of a given weekday on or after a start date
+            function firstOccurrence(startDate, targetJsDay) {
+                const d = new Date(startDate);
+                while (d.getDay() !== targetJsDay) {
+                    d.setDate(d.getDate() + 1);
+                }
+                return d;
+            }
+
+            // Generate a simple UID
+            function uid() {
+                return 'fast-tt-' + Math.random().toString(36).substring(2, 10) + '-' + Date.now().toString(36);
+            }
+
+            // Fold long lines per RFC 5545 (max 75 octets per line)
+            function foldLine(line) {
+                if (line.length <= 75) return line;
+                let result = line.substring(0, 75);
+                let pos = 75;
+                while (pos < line.length) {
+                    result += '\r\n ' + line.substring(pos, pos + 74);
+                    pos += 74;
+                }
+                return result;
+            }
+
+            let events = [];
+
+            for (const [title, course] of Object.entries(currentSelection)) {
+                const duration = course.is_lab ? LAB_DURATION : LECTURE_DURATION;
+
+                // Deduplicate slots: a course may list the lab's second consecutive slot,
+                // but we only want one event per actual class meeting.
+                // Group slots by day and take the earliest time per day.
+                const slotsByDay = {};
+                for (const slot of course.slots) {
+                    const dayKey = slot.day;
+                    const slotTime = slot.time.split('-')[0]; // e.g. "10:00"
+                    if (!slotsByDay[dayKey]) {
+                        slotsByDay[dayKey] = { time: slotTime, venue: slot.venue };
+                    } else {
+                        // Keep the earlier time
+                        if (slotTime < slotsByDay[dayKey].time) {
+                            slotsByDay[dayKey] = { time: slotTime, venue: slot.venue };
+                        }
+                    }
+                }
+
+                for (const [day, slotInfo] of Object.entries(slotsByDay)) {
+                    const dayInfo = DAY_MAP[day];
+                    if (!dayInfo) continue;
+
+                    const [hours, minutes] = slotInfo.time.split(':').map(Number);
+
+                    // Find the first occurrence of this weekday in the semester
+                    const firstDate = firstOccurrence(SEMESTER_START, dayInfo.js);
+                    firstDate.setHours(hours, minutes, 0, 0);
+
+                    const endDate = new Date(firstDate.getTime() + duration * 60 * 1000);
+
+                    // UNTIL date for recurrence (end of semester day, 23:59:59)
+                    const untilDate = new Date(SEMESTER_END);
+                    untilDate.setHours(23, 59, 59, 0);
+
+                    const summary = `${title} (${course.section})`;
+                    const description = `Instructor: ${course.instructor}\\nSection: ${course.section}\\nCategory: ${course.category || 'N/A'}\\nCredits: ${course.credit_hours || 3}`;
+                    const location = slotInfo.venue || 'TBD';
+
+                    events.push([
+                        'BEGIN:VEVENT',
+                        foldLine('UID:' + uid()),
+                        'DTSTAMP:' + toICSDate(new Date()),
+                        'DTSTART;TZID=Asia/Karachi:' + toICSDate(firstDate),
+                        'DTEND;TZID=Asia/Karachi:' + toICSDate(endDate),
+                        'RRULE:FREQ=WEEKLY;BYDAY=' + dayInfo.ics + ';UNTIL=' + toICSDateOnly(untilDate) + 'T235959',
+                        foldLine('SUMMARY:' + summary),
+                        foldLine('DESCRIPTION:' + description),
+                        foldLine('LOCATION:' + location),
+                        'STATUS:CONFIRMED',
+                        'END:VEVENT',
+                    ].join('\r\n'));
+                }
+            }
+
+            // VTIMEZONE for Asia/Karachi (PKT, no DST)
+            const vtimezone = [
+                'BEGIN:VTIMEZONE',
+                'TZID:Asia/Karachi',
+                'BEGIN:STANDARD',
+                'DTSTART:19700101T000000',
+                'TZOFFSETFROM:+0500',
+                'TZOFFSETTO:+0500',
+                'TZNAME:PKT',
+                'END:STANDARD',
+                'END:VTIMEZONE',
+            ].join('\r\n');
+
+            const icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//FAST Timetable Generator//EN',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
+                'X-WR-CALNAME:FAST Fall 2026 Timetable',
+                'X-WR-TIMEZONE:Asia/Karachi',
+                vtimezone,
+                ...events,
+                'END:VCALENDAR',
+            ].join('\r\n');
+
+            // Trigger download
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'FAST_Timetable_Fall2026.ics';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ─── Google Calendar Sync (Subscribe) ────────────────────────
+        async function showGCalModal() {
+            if (!currentSelection || Object.keys(currentSelection).length === 0) {
+                alert('No timetable selected. Generate a timetable first.');
+                return;
+            }
+
+            // Get or reuse calendar ID from localStorage
+            let calendarId = localStorage.getItem('fast_tt_calendar_id') || null;
+
+            // Create or reuse modal overlay
+            let overlay = document.getElementById('gcal-modal-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'gcal-modal-overlay';
+                overlay.className = 'gcal-modal-overlay';
+                document.body.appendChild(overlay);
+            }
+
+            // Show loading
+            overlay.innerHTML = `
+                <div class="gcal-modal">
+                    <div class="gcal-modal-header">
+                        <span class="gcal-modal-title">📅 Publishing Timetable…</span>
+                        <button class="gcal-modal-close" onclick="closeGCalModal()">✕</button>
+                    </div>
+                    <div style="text-align: center; padding: 2.5rem 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.75rem; animation: pulse 1.5s infinite;">⏳</div>
+                        <p style="color: var(--text-secondary);">Generating your calendar link…</p>
+                    </div>
+                </div>
+            `;
+            overlay.classList.add('active');
+            overlay.onclick = (e) => { if (e.target === overlay) closeGCalModal(); };
+            document.addEventListener('keydown', gcalEscHandler);
+
+            try {
+                const resp = await fetch('/api/calendar/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        calendar_id: calendarId,
+                        courses: currentSelection,
+                    })
+                });
+                const data = await resp.json();
+
+                if (!data.success) throw new Error(data.error || 'Failed');
+
+                // Persist calendar ID for future updates
+                localStorage.setItem('fast_tt_calendar_id', data.calendar_id);
+
+                const calUrl = data.calendar_url;
+                const webcalUrl = calUrl.replace(/^https?:/, 'webcal:');
+                const courseCount = Object.keys(currentSelection).length;
+
+                const courseList = Object.entries(currentSelection).map(([title, c]) => {
+                    const sched = c.slots.map(s => s.day + ' ' + s.time.split('-')[0]).join(', ');
+                    return `<div class="gcal-course-detail" style="padding: 0.2rem 0;">• ${title} (${c.section}) — ${sched}</div>`;
+                }).join('');
+
+                overlay.innerHTML = `
+                    <div class="gcal-modal">
+                        <div class="gcal-modal-header">
+                            <span class="gcal-modal-title">✅ Calendar Published!</span>
+                            <button class="gcal-modal-close" onclick="closeGCalModal()">✕</button>
+                        </div>
+                        <div class="gcal-modal-desc">
+                            Your timetable with <strong>${courseCount} courses</strong> is live at the link below.
+                            Subscribe in any calendar app — it stays updated when you re-sync.
+                        </div>
+
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem; margin-bottom: 1rem;">
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">Calendar URL</div>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="text" value="${calUrl}" readonly id="gcal-url-input"
+                                    style="flex: 1; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.75rem; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; outline: none; min-width: 0;">
+                                <button onclick="copyCalUrl()" id="gcal-copy-btn"
+                                    style="padding: 0.5rem 0.85rem; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s;">
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="gcal-footer-btns" style="flex-direction: column;">
+                            <a href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}" target="_blank" rel="noopener"
+                               class="gcal-add-all" style="text-decoration: none; text-align: center; display: block;">
+                                Subscribe in Google Calendar
+                            </a>
+                            <a href="${webcalUrl}" class="gcal-download-ics" style="text-decoration: none; text-align: center; display: block;">
+                                Open in default calendar app
+                            </a>
+                        </div>
+
+                        <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                            <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">Manual setup:</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.6;">
+                                1. Open <strong>Google Calendar</strong> → click <strong>+</strong> next to "Other calendars"<br>
+                                2. Select <strong>"From URL"</strong><br>
+                                3. Paste the calendar URL above and click <strong>"Add calendar"</strong>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(99, 102, 241, 0.08); border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.15);">
+                            <div style="font-size: 0.75rem; color: var(--accent-light); line-height: 1.5;">
+                                💡 Changed your mind? Select a different variation and click "Sync to Calendar" again — the same link will update automatically.
+                            </div>
+                        </div>
+
+                        <details style="margin-top: 1rem;">
+                            <summary style="font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Synced courses (${courseCount})</summary>
+                            <div style="padding: 0.5rem 0;">${courseList}</div>
+                        </details>
+                    </div>
+                `;
+            } catch (err) {
+                console.error('Subscribe error:', err);
+                overlay.innerHTML = `
+                    <div class="gcal-modal">
+                        <div class="gcal-modal-header">
+                            <span class="gcal-modal-title">❌ Error</span>
+                            <button class="gcal-modal-close" onclick="closeGCalModal()">✕</button>
+                        </div>
+                        <div class="gcal-modal-desc">
+                            Failed to publish the calendar. Please try again, or download the .ics file instead.
+                        </div>
+                        <div class="gcal-footer-btns">
+                            <button class="gcal-add-all" onclick="closeGCalModal(); showGCalModal();">Retry</button>
+                            <button class="gcal-download-ics" onclick="closeGCalModal(); downloadICS();">📥 Download .ics</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function gcalEscHandler(e) {
+            if (e.key === 'Escape') closeGCalModal();
+        }
+
+        function closeGCalModal() {
+            const overlay = document.getElementById('gcal-modal-overlay');
+            if (overlay) overlay.classList.remove('active');
+            document.removeEventListener('keydown', gcalEscHandler);
+        }
+
+        function copyCalUrl() {
+            const input = document.getElementById('gcal-url-input');
+            const btn = document.getElementById('gcal-copy-btn');
+            navigator.clipboard.writeText(input.value).then(() => {
+                btn.textContent = '✓ Copied';
+                btn.style.background = 'var(--success)';
+                setTimeout(() => { btn.textContent = 'Copy'; btn.style.background = 'var(--accent)'; }, 2000);
+            }).catch(() => {
+                input.select();
+                document.execCommand('copy');
+                btn.textContent = '✓ Copied';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+            });
         }
     </script>
 </body>
