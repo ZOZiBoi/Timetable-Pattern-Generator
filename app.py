@@ -313,6 +313,18 @@ def serve_calendar(calendar_id):
     with open(cal_path) as f:
         courses = json.load(f)
 
+    # Dynamically update the slots and venues using the latest timetable data
+    a = get_analyzer()
+    for title, course_data in courses.items():
+        section = course_data.get('section')
+        if section:
+            # Find the matching course in the latest timetable
+            matching_course = next((c for c in a.courses if c.short_title == title and c.section == section), None)
+            if matching_course:
+                course_data['slots'] = [{'day': d, 'time': t, 'venue': v} for d, t, v in matching_course.get_time_slots()]
+                course_data['instructor'] = matching_course.instructor
+                course_data['is_lab'] = matching_course.is_lab()
+
     ics_content = _generate_ics(courses)
 
     return Response(
