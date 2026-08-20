@@ -3,6 +3,7 @@ import urllib.request
 import re
 import os
 import ssl
+import subprocess
 
 URL = "https://lhr.nu.edu.pk/fsc/studentForms/"
 BASE_URL = "https://lhr.nu.edu.pk"
@@ -85,6 +86,18 @@ def main():
             f.write(new_content)
             
         print("Updated config.py successfully.")
+        
+        # Git commit and push
+        print("Committing and pushing to git...")
+        try:
+            version_match = re.search(r'(v[\d\.]+)', filename, re.IGNORECASE)
+            version_str = version_match.group(1) if version_match else filename
+            subprocess.run(["git", "add", filepath, CONFIG_FILE], check=True)
+            subprocess.run(["git", "commit", "-m", f"Update timetable to {version_str}"], check=True)
+            subprocess.run(["git", "push"], check=True)
+            print("Successfully pushed to git! This will trigger a deploy on Render.")
+        except Exception as e:
+            print(f"Error during git operations: {e}")
     else:
         print("config.py not found. Could not update the filename automatically.")
 
