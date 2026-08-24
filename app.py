@@ -37,6 +37,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-secret-key-change-in-
 
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
 db.init_app(app)
 
@@ -469,7 +471,8 @@ def oauth2callback():
         
     db.session.commit()
     
-    login_user(user)
+    session.permanent = True
+    login_user(user, remember=True)
     
     return redirect(url_for('index'))
 
