@@ -58,7 +58,10 @@ if os.environ.get('RENDER'):
 else:
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
-CLIENT_SECRETS_FILE = "credentials.json"
+if os.path.exists('/etc/secrets/credentials.json'):
+    CLIENT_SECRETS_FILE = '/etc/secrets/credentials.json'
+else:
+    CLIENT_SECRETS_FILE = 'credentials.json'
 SCOPES = [
     'https://www.googleapis.com/auth/calendar',
     'openid',
