@@ -93,3 +93,4 @@ Desktop.ini
 
 # Calendar subscriptions (user data)
 calendars/
+credentials.json
