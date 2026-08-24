@@ -3412,42 +3412,24 @@
             document.addEventListener('keydown', gcalEscHandler);
         }
 
-        async function saveUserCourses() {
+        function saveUserCourses() {
             if (!isUserLoggedIn) {
                 alert("Please sign in with Google first to save your courses.");
                 return;
             }
             
-            const btn = document.querySelector('.gcal-sync-btn');
-            const origHtml = btn.innerHTML;
-            btn.innerHTML = '<span class="btn-icon">⏳</span> Saving...';
-            btn.disabled = true;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/sync-loading';
             
-            try {
-                const res = await fetch('/api/user/courses', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ courses: currentSelection })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    btn.innerHTML = '<span class="btn-icon">✅</span> Saved & Synced!';
-                    btn.style.background = 'var(--success)';
-                    setTimeout(() => {
-                        btn.innerHTML = origHtml;
-                        btn.style.background = '';
-                        btn.disabled = false;
-                    }, 3000);
-                } else {
-                    alert("Error saving courses: " + data.error);
-                    btn.innerHTML = origHtml;
-                    btn.disabled = false;
-                }
-            } catch (e) {
-                alert("Error connecting to server.");
-                btn.innerHTML = origHtml;
-                btn.disabled = false;
-            }
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'courses';
+            input.value = JSON.stringify(currentSelection);
+            form.appendChild(input);
+            
+            document.body.appendChild(form);
+            form.submit();
         }
 
         // Publish a subscribable calendar feed (secondary option)

@@ -529,8 +529,8 @@ def sync_user_calendar(user):
     from datetime import timezone
     now = datetime.now(timezone.utc).isoformat()
     
-    old_events_result = service.events().list(calendarId=calendar_id, q='[FAST]', singleEvents=True, maxResults=2500).execute()
-    new_events_result = service.events().list(calendarId=calendar_id, privateExtendedProperty='source=fast-timetable', singleEvents=True, maxResults=2500).execute()
+    old_events_result = service.events().list(calendarId=calendar_id, q='[FAST]', maxResults=2500).execute()
+    new_events_result = service.events().list(calendarId=calendar_id, privateExtendedProperty='source=fast-timetable', maxResults=2500).execute()
     
     seen_ids = set()
     existing_events = []
@@ -571,13 +571,12 @@ def sync_user_calendar(user):
     LECTURE_DUR = timedelta(minutes=80)
     LAB_DUR = timedelta(minutes=170)
 
+    batch = service.new_batch_http_request()
+    
     for title, course in courses_to_sync.items():
         if title in existing_by_course:
             for event in existing_by_course[title]:
-                try:
-                    service.events().delete(calendarId=calendar_id, eventId=event['id']).execute()
-                except Exception as e:
-                    pass
+                batch.add(service.events().delete(calendarId=calendar_id, eventId=event['id']))
             del existing_by_course[title]
             
         is_lab = course.get('is_lab', False)
@@ -638,15 +637,26 @@ def sync_user_calendar(user):
                     }
                 }
             }
-            service.events().insert(calendarId=calendar_id, body=event_body).execute()
+            batch.add(service.events().insert(calendarId=calendar_id, body=event_body))
 
     for title, events in existing_by_course.items():
         for event in events:
-            try:
-                service.events().delete(calendarId=calendar_id, eventId=event['id']).execute()
-            except Exception as e:
-                pass
+            batch.add(service.events().delete(calendarId=calendar_id, eventId=event['id']))
+            
+    # Execute all insertions and deletions in a single HTTP request!
+    batch.execute()
     return True
+
+@app.route('/sync-loading', methods=['POST'])
+@login_required
+def sync_loading():
+    courses_json = request.form.get('courses', '{}')
+    return render_template('sync_loading.html', courses_json=courses_json)
+
+@app.route('/sync-success')
+@login_required
+def sync_success():
+    return render_template('sync_success.html')
 
 @app.route('/api/user/courses', methods=['POST'])
 @login_required
@@ -674,7 +684,7 @@ def save_user_courses():
         
     db.session.commit()
     
-    # Background sync
+    # Run sync synchronously so the loading screen can wait for it
     try:
         sync_user_calendar(current_user)
     except Exception as e:
