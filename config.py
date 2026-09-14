@@ -5,7 +5,7 @@ Change the TIMETABLE_FILENAME here to update it across the entire application.
 """
 
 # Timetable filename - change this to update the timetable file used across the app
-TIMETABLE_FILENAME = "timetable/FSC_F26_TT_v1.1.4_06092026_jp3PANC.xlsx"
+TIMETABLE_FILENAME = "timetable/FSC_F26_TT_v1.1.5_13092026_BaxJ02P.xlsx"
 
 import os
 
